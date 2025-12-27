@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Holographic Particle Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            overflow: hidden;
+            background: #000;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #fff;
+        }
+
+        #canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #ui-overlay {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            font-size: 14px;
+            transition: opacity 0.3s;
+        }
+
+        #ui-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .ui-item {
+            margin: 8px 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .ui-label {
+            color: #0ff;
+            margin-right: 10px;
+            min-width: 100px;
+        }
+
+        .ui-value {
+            color: #fff;
+        }
+
+        #model-selector {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            max-width: 300px;
+        }
+
+        .model-btn {
+            background: rgba(0, 255, 255, 0.2);
+            border: 1px solid #0ff;
+            color: #0ff;
+            padding: 10px 15px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 12px;
+        }
+
+        .model-btn:hover {
+            background: rgba(0, 255, 255, 0.4);
+            transform: scale(1.05);
+        }
+
+        .model-btn.active {
+            background: rgba(0, 255, 255, 0.6);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+        }
+
+        #gesture-indicator {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            border: 3px solid rgba(0, 255, 255, 0.6);
+            border-radius: 50%;
+            pointer-events: none;
+            display: none;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.8);
+        }
+
+        #gesture-indicator.active {
+            display: block;
+        }
+
+        #webcam-preview {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            width: 200px;
+            height: 150px;
+            border: 2px solid rgba(0, 255, 255, 0.3);
+            border-radius: 10px;
+            display: none;
+            z-index: 10;
+        }
+
+        #webcam-preview.active {
+            display: block;
+        }
+
+        #tutorial {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            padding: 40px;
+            border-radius: 15px;
+            border: 2px solid #0ff;
+            max-width: 600px;
+            z-index: 100;
+            display: none;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        #tutorial.active {
+            display: block;
+        }
+
+        #tutorial h2 {
+            color: #0ff;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        #tutorial ul {
+            list-style: none;
+            margin: 20px 0;
+        }
+
+        #tutorial li {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+
+        #tutorial button {
+            background: #0ff;
+            color: #000;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 20px;
+            font-size: 16px;
+        }
+
+        #tutorial button:hover {
+            background: #0dd;
+        }
+        
+        .close-tutorial {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: transparent;
+            border: 2px solid #0ff;
+            color: #0ff;
+            width: 35px !important;
+            height: 35px;
+            padding: 0 !important;
+            font-size: 24px;
+            line-height: 30px;
+            cursor: pointer;
+            border-radius: 50%;
+            text-align: center;
+        }
+        
+        .close-tutorial:hover {
+            background: rgba(0, 255, 255, 0.2);
+        }
+
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #0ff;
+            font-size: 24px;
+            z-index: 1000;
+        }
+
+        .gesture-info {
+            font-size: 12px;
+            color: #0ff;
+            margin-top: 10px;
+        }
+
+        #settings-panel {
+            position: fixed;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #0ff;
+            z-index: 100;
+            display: none;
+            max-width: 300px;
+        }
+
+        #settings-panel h3 {
+            color: #0ff;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .setting-group {
+            margin: 15px 0;
+        }
+
+        .setting-label {
+            color: #fff;
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .setting-group input[type="range"] {
+            width: 100%;
+            margin: 5px 0;
+        }
+
+        .setting-group select {
+            width: 100%;
+            padding: 8px;
+            background: rgba(0, 255, 255, 0.2);
+            border: 1px solid #0ff;
+            color: #0ff;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .setting-group button {
+            width: 100%;
+            padding: 10px;
+            background: rgba(0, 255, 255, 0.3);
+            border: 1px solid #0ff;
+            color: #0ff;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .setting-group button:hover {
+            background: rgba(0, 255, 255, 0.5);
+        }
+
+        .value-display {
+            color: #0ff;
+            font-weight: bold;
+        }
+
+        #help-button {
+            position: fixed;
+            bottom: 70px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(0, 255, 255, 0.3);
+            border: 3px solid #0ff;
+            color: #0ff;
+            font-size: 32px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 100;
+            transition: all 0.3s;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+        }
+
+        #help-button:hover {
+            background: #0ff;
+            color: #000;
+            transform: scale(1.1);
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.8);
+        }
+
+        #help-panel {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 200;
+            display: none;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+        }
+
+        #help-panel.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .help-content {
+            background: #000;
+            border: 2px solid #0ff;
+            border-radius: 15px;
+            padding: 40px;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .help-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #0ff;
+            padding-bottom: 15px;
+        }
+
+        .help-close {
+            background: transparent;
+            border: 2px solid #0ff;
+            color: #0ff;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            line-height: 36px;
+        }
+
+        .help-close:hover {
+            background: #0ff;
+            color: #000;
+        }
+
+        .help-section {
+            margin-bottom: 30px;
+        }
+
+        .help-section h3 {
+            color: #0ff;
+            font-size: 20px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+            padding-bottom: 8px;
+        }
+
+        .gesture-item, .control-item {
+            background: rgba(0, 255, 255, 0.1);
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 8px;
+            display: flex;
+            align-items: start;
+            gap: 12px;
+        }
+
+        .gesture-icon {
+            font-size: 32px;
+            min-width: 40px;
+        }
+
+        .gesture-details {
+            flex: 1;
+        }
+
+        .gesture-name {
+            color: #fff;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .gesture-desc {
+            color: #0ff;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .help-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+        }
+
+        .help-tip {
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid #0ff;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    
+    <div id="loading">Loading Holographic Interface...</div>
+    
+    <div id="ui-overlay">
+        <div class="ui-item">
+            <span class="ui-label">Mode:</span>
+            <span class="ui-value" id="mode-display">Cursor</span>
+        </div>
+        <div class="ui-item">
+            <span class="ui-label">Hologram:</span>
+            <span class="ui-value" id="model-display">None</span>
+        </div>
+        <div class="ui-item">
+            <span class="ui-label">Particles:</span>
+            <span class="ui-value" id="particle-count">2000</span>
+        </div>
+        <div class="ui-item">
+            <span class="ui-label">FPS:</span>
+            <span class="ui-value" id="fps-display">60</span>
+        </div>
+        <div class="gesture-info">
+            Press 'H' to hide UI<br>
+            Press 'T' for tutorial<br>
+            Press 'G' to toggle gesture mode<br>
+            Press 'S' for settings<br>
+            Press '?' for help
+        </div>
+    </div>
+
+    <button id="help-button" onclick="toggleHelp()" title="Help & Gestures Guide">?</button>
+
+    <div id="model-selector">
+        <button class="model-btn" data-model="cube">⬛ Cube</button>
+        <button class="model-btn" data-model="sphere">⚪ Sphere</button>
+        <button class="model-btn" data-model="cylinder">🛢️ Cylinder</button>
+        <button class="model-btn" data-model="cone">🔻 Cone</button>
+        <button class="model-btn" data-model="torus">🍩 Torus</button>
+        <button class="model-btn" data-model="pyramid">🔺 Pyramid</button>
+        <button class="model-btn" data-model="free">🎨 Free Mode</button>
+    </div>
+
+    <div id="settings-panel">
+        <h3>⚙️ Settings</h3>
+        
+        <div class="setting-group">
+            <label class="setting-label">
+                Particle Count: <span class="value-display" id="particle-value">2000</span>
+            </label>
+            <input type="range" id="particle-slider" min="500" max="5000" step="100" value="2000">
+        </div>
+        
+        <div class="setting-group">
+            <label class="setting-label">
+                Sensitivity: <span class="value-display" id="sensitivity-value">1.0</span>
+            </label>
+            <input type="range" id="sensitivity-slider" min="0.1" max="3.0" step="0.1" value="1.0">
+        </div>
+        
+        <div class="setting-group">
+            <label class="setting-label">Color Scheme</label>
+            <select id="color-scheme">
+                <option value="cyan">Cyan (Default)</option>
+                <option value="purple">Purple</option>
+                <option value="green">Green</option>
+                <option value="red">Red</option>
+                <option value="white">White</option>
+            </select>
+        </div>
+        
+        <div class="setting-group">
+            <label class="setting-label">Save Current Formation</label>
+            <button id="save-design-btn">💾 Save Design</button>
+        </div>
+        
+        <div class="setting-group">
+            <label class="setting-label">Load Saved Design</label>
+            <select id="saved-designs-select">
+                <option value="">-- Load Design --</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="gesture-indicator"></div>
+    <video id="webcam-preview" autoplay playsinline></video>
+
+    <div id="help-panel">
+        <div class="help-content">
+            <div class="help-header">
+                <h2 style="color: #0ff; font-size: 28px; margin: 0;">HPI Control Guide</h2>
+                <button class="help-close" onclick="toggleHelp()">&times;</button>
+            </div>
+
+            <div class="help-grid">
+                <div class="help-section">
+                    <h3>Hand Gestures</h3>
+                    <div class="gesture-item">
+                        <div class="gesture-icon">✋</div>
+                        <div class="gesture-details">
+                            <div class="gesture-name">Open Palm</div>
+                            <div class="gesture-desc">Attract particles toward hand (1.5x strength)</div>
+                        </div>
+                    </div>
+                    <div class="gesture-item">
+                        <div class="gesture-icon">✊</div>
+                        <div class="gesture-details">
+                            <div class="gesture-name">Closed Fist</div>
+                            <div class="gesture-desc">Repel particles away (1.8x strength)</div>
+                        </div>
+                    </div>
+                    <div class="gesture-item">
+                        <div class="gesture-icon">🤏</div>
+                        <div class="gesture-details">
+                            <div class="gesture-name">Pinch</div>
+                            <div class="gesture-desc">Precise grab & drag (2.5x strength)</div>
+                        </div>
+                    </div>
+                    <div class="gesture-item">
+                        <div class="gesture-icon">☝️</div>
+                        <div class="gesture-details">
+                            <div class="gesture-name">Point</div>
+                            <div class="gesture-desc">Precise directional control</div>
+                        </div>
+                    </div>
+                    <div class="gesture-item">
+                        <div class="gesture-icon">✌️</div>
+                        <div class="gesture-details">
+                            <div class="gesture-name">Peace Sign</div>
+                            <div class="gesture-desc">360° rotation by moving hand</div>
+                        </div>
+                    </div>
+                    <div class="gesture-item">
+                        <div class="gesture-icon">👍</div>
+                        <div class="gesture-details">
+                            <div class="gesture-name">Thumbs Up</div>
+                            <div class="gesture-desc">Zoom in / scale up</div>
+                        </div>
+                    </div>
+                    <div class="gesture-item">
+                        <div class="gesture-icon">👎</div>
+                        <div class="gesture-details">
+                            <div class="gesture-name">Thumbs Down</div>
+                            <div class="gesture-desc">Zoom out / scale down</div>
+                        </div>
+                    </div>
+                    <div class="gesture-item">
+                        <div class="gesture-icon">👌</div>
+                        <div class="gesture-details">
+                            <div class="gesture-name">OK Sign</div>
+                            <div class="gesture-desc">Standard attraction</div>
+                        </div>
+                    </div>
+                    <div class="gesture-item">
+                        <div class="gesture-icon">🤘</div>
+                        <div class="gesture-details">
+                            <div class="gesture-name">Rock Sign</div>
+                            <div class="gesture-desc">Strong attraction (1.5x)</div>
+                        </div>
+                    </div>
+                    <div class="gesture-item">
+                        <div class="gesture-icon">🖐️</div>
+                        <div class="gesture-details">
+                            <div class="gesture-name">Open Palm + Move</div>
+                            <div class="gesture-desc">360° rotation control by moving hand</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="help-section">
+                        <h3>Keyboard Controls</h3>
+                        <div style="color: #0ff; font-size: 13px; line-height: 2;">
+                            <div><strong style="color: #fff;">1-9:</strong> Select hologram model</div>
+                            <div><strong style="color: #fff;">Arrow Keys:</strong> Rotate hologram 360°</div>
+                            <div><strong style="color: #fff;">Space:</strong> Toggle formation mode</div>
+                            <div><strong style="color: #fff;">H:</strong> Hide/show UI</div>
+                            <div><strong style="color: #fff;">M/G:</strong> Toggle control mode</div>
+                            <div><strong style="color: #fff;">R:</strong> Reset particles</div>
+                            <div><strong style="color: #fff;">S:</strong> Open settings</div>
+                            <div><strong style="color: #fff;">?:</strong> Toggle help panel</div>
+                        </div>
+                    </div>
+
+                    <div class="help-section">
+                        <h3>Mouse Controls</h3>
+                        <div style="color: #0ff; font-size: 13px; line-height: 2;">
+                            <div><strong style="color: #fff;">Move:</strong> Attract particles</div>
+                            <div><strong style="color: #fff;">Click:</strong> Stronger attraction</div>
+                            <div><strong style="color: #fff;">Right Drag:</strong> 360° rotation</div>
+                            <div><strong style="color: #fff;">Scroll:</strong> Zoom in/out</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="help-tip">
+                <strong style="color: #fff;">Pro Tip:</strong> For gesture mode, ensure good lighting and camera permissions. Hand should be visible with palm facing camera for best tracking.
+            </div>
+        </div>
+    </div>
+
+    <div id="tutorial">
+        <button class="close-tutorial" onclick="closeTutorial()" title="Close Tutorial">×</button>
+        <h2>🌟 Holographic Particle Interface</h2>
+        <h3>Keyboard Controls:</h3>
+        <ul>
+            <li>🔢 <strong>1-8:</strong> Select hologram preset</li>
+            <li>🔢 <strong>0:</strong> Enter draw mode</li>
+            <li>⬆️ <strong>Arrow Keys:</strong> Rotate hologram</li>
+            <li>🔄 <strong>Spacebar:</strong> Toggle formation mode</li>
+            <li>🔁 <strong>R:</strong> Reset particles</li>
+            <li>⚙️ <strong>S:</strong> Toggle settings panel</li>
+            <li>🎮 <strong>G:</strong> Toggle gesture control</li>
+            <li>🗑️ <strong>C:</strong> Clear drawing (in draw mode)</li>
+            <li>👁️ <strong>H:</strong> Hide/show UI</li>
+        </ul>
+        <h3>Mouse Controls:</h3>
+        <ul>
+            <li>🖱️ Move mouse to attract particles</li>
+            <li>🖱️ Click & drag to manipulate</li>
+            <li>🖱️ In draw mode: Click & drag to draw 3D paths</li>
+            <li>🎡 Scroll wheel to zoom</li>
+        </ul>
+        <h3>Gesture Controls (when enabled):</h3>
+        <ul>
+            <li>✋ <strong>Open Palm:</strong> Attract particles</li>
+            <li>✊ <strong>Closed Fist:</strong> Push particles away</li>
+            <li>👌 <strong>Pinch:</strong> Grab and drag</li>
+            <li>✌️ <strong>Peace Sign:</strong> Rotate hologram</li>
+            <li>👍 <strong>Thumbs Up:</strong> Zoom in</li>
+            <li>👎 <strong>Thumbs Down:</strong> Zoom out</li>
+            <li>👋 <strong>Swipe Left/Right:</strong> Switch holograms</li>
+        </ul>
+        <button onclick="closeTutorial()">Got it!</button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
