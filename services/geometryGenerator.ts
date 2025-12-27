@@ -108,6 +108,14 @@ export const generateModelCoordinates = (model: PresetModel, count: number): Par
       break;
 
     case PresetModel.FREE:
+      // For free flow mode, generate widely scattered random positions
+      for (let i = 0; i < count; i++) {
+        points.push({ 
+          x: (Math.random()-0.5)*8, 
+          y: (Math.random()-0.5)*8, 
+          z: (Math.random()-0.5)*8 
+        });
+      }
       break;
 
     default:

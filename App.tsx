@@ -83,7 +83,16 @@ const App: React.FC = () => {
       const num = parseInt(e.key);
       if (num >= 1 && num <= 9) {
         const presets = Object.values(PresetModel);
-        if (presets[num-1]) setCurrentPreset(presets[num-1]);
+        if (presets[num-1]) {
+          const selectedPreset = presets[num-1];
+          setCurrentPreset(selectedPreset);
+          // Disable formation mode for FREE flow
+          if (selectedPreset === PresetModel.FREE) {
+            setSettings(s => ({ ...s, isFormationMode: false }));
+          } else {
+            setSettings(s => ({ ...s, isFormationMode: true }));
+          }
+        }
       }
     };
 
