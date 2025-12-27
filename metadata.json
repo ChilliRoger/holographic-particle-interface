@@ -1,0 +1,7 @@
+{
+  "name": "Holographic Particle Interface (HPI)",
+  "description": "An immersive 3D particle simulation that bridges hand gestures and virtual manipulation using Three.js and MediaPipe.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

@@ -8,24 +8,43 @@ def generate_tree_model():
     """Generate 3D coordinates for a tree shape"""
     points = []
     
-    # Trunk
-    for i in range(200):
-        angle = (i / 200) * 2 * math.pi * 3
-        height = (i / 200) * 0.4
-        radius = 0.05 * (1 - height)
-        x = radius * math.cos(angle)
-        z = radius * math.sin(angle)
-        y = height - 0.5
+    # Enhanced trunk with bark texture simulation
+    for i in range(250):
+        height_norm = i / 250
+        angle = height_norm * math.pi * 12 + (i % 10) * 0.1
+        height = height_norm * 1.0
+        radius = 0.08 * (1 - height * 0.7) * (1 + math.sin(angle * 8) * 0.1)
+        wobble = math.sin(height * 10) * 0.01
+        x = radius * math.cos(angle) + wobble
+        z = radius * math.sin(angle) + wobble
+        y = height - 0.6
         points.append({"x": x, "y": y, "z": z})
     
-    # Foliage (spherical crown)
-    for i in range(800):
-        theta = math.acos(2 * (i / 800) - 1)
-        phi = math.pi * (1 + 5**0.5) * i
-        radius = 0.25 + (i % 100) / 500
-        x = radius * math.sin(theta) * math.cos(phi)
-        y = radius * math.sin(theta) * math.sin(phi) + 0.15
-        z = radius * math.cos(theta)
+    # Branches extending from trunk
+    import random
+    for i in range(150):
+        branch_height = 0.2 + random.random() * 0.6
+        branch_angle = random.random() * math.pi * 2
+        branch_length = random.random() * 0.4
+        for j in range(5):
+            t = j / 5
+            points.append({
+                "x": math.cos(branch_angle) * branch_length * t,
+                "y": branch_height - 0.6 + t * 0.2,
+                "z": math.sin(branch_angle) * branch_length * t
+            })
+    
+    # Layered foliage crown
+    for i in range(1100):
+        layer = int(random.random() * 3)
+        layer_radius = 0.4 + layer * 0.15
+        layer_height = 0.5 - layer * 0.2
+        theta = math.acos(2 * random.random() - 1)
+        phi = random.random() * math.pi * 2
+        clump_factor = random.random() * 0.3
+        x = layer_radius * math.sin(theta) * math.cos(phi) * (1 + clump_factor)
+        y = layer_radius * math.sin(theta) * math.sin(phi) * 0.8 + layer_height
+        z = layer_radius * math.cos(theta) * (1 + clump_factor)
         points.append({"x": x, "y": y, "z": z})
     
     return points
@@ -33,39 +52,53 @@ def generate_tree_model():
 def generate_car_model():
     """Generate 3D coordinates for a car shape"""
     points = []
+    import random
     
-    # Car body (box shape)
-    for x in range(-20, 21, 2):
-        for y in range(-10, 11, 2):
-            for z in range(-8, 9, 2):
-                if abs(x) == 20 or abs(y) == 10 or abs(z) == 8:
-                    points.append({
-                        "x": x / 40,
-                        "y": y / 40 - 0.1,
-                        "z": z / 40
-                    })
+    # Hood and front
+    for i in range(200):
+        x = (random.random() - 0.5) * 0.6
+        z = (random.random() - 0.5) * 0.6
+        y = -0.1 + abs(x) * 0.1
+        points.append({"x": x + 0.5, "y": y, "z": z})
+    
+    # Main body with windshield
+    for i in range(500):
+        x = (random.random() - 0.5) * 0.7
+        y = (random.random() - 0.5) * 0.5 - 0.05
+        z = (random.random() - 0.5) * 0.7
+        if abs(x) > 0.6 or abs(z) > 0.6 or abs(y) > 0.2:
+            points.append({"x": x, "y": y, "z": z})
     
     # Roof
-    for x in range(-12, 13, 2):
-        for y in range(5, 16, 2):
-            for z in range(-8, 9, 2):
-                if abs(z) == 8 or y == 15:
-                    points.append({
-                        "x": x / 40,
-                        "y": y / 40 - 0.1,
-                        "z": z / 40
-                    })
+    for i in range(150):
+        x = (random.random() - 0.5) * 0.5
+        z = (random.random() - 0.5) * 0.6
+        points.append({"x": x, "y": 0.25, "z": z})
     
-    # Wheels
-    for wheel_x in [-0.35, 0.35]:
-        for angle in range(0, 360, 10):
-            rad = math.radians(angle)
-            for r in [0.08, 0.1]:
-                points.append({
-                    "x": wheel_x,
-                    "y": math.cos(rad) * r - 0.35,
-                    "z": math.sin(rad) * r
-                })
+    # Trunk
+    for i in range(100):
+        x = (random.random() - 0.5) * 0.6
+        z = (random.random() - 0.5) * 0.5
+        y = -0.1 + abs(x) * 0.05
+        points.append({"x": x - 0.5, "y": y, "z": z})
+    
+    # Four wheels with spokes
+    wheel_positions = [
+        {"x": 0.5, "z": 0.35},
+        {"x": 0.5, "z": -0.35},
+        {"x": -0.5, "z": 0.35},
+        {"x": -0.5, "z": -0.35}
+    ]
+    
+    for pos in wheel_positions:
+        for i in range(100):
+            angle = (i / 100) * 2 * math.pi
+            r = 0.12 + (i % 3) * 0.02
+            points.append({
+                "x": pos["x"],
+                "y": math.cos(angle) * r - 0.35,
+                "z": pos["z"] + math.sin(angle) * r * 0.3
+            })
     
     return points[:2000]
 
@@ -198,44 +231,88 @@ def generate_airplane_model():
 def generate_human_model():
     """Generate 3D coordinates for a human figure"""
     points = []
+    import random
     
-    # Head
-    for i in range(200):
-        theta = math.acos(2 * (i / 200) - 1)
-        phi = math.pi * (1 + 5**0.5) * i
-        radius = 0.12
-        x = radius * math.sin(theta) * math.cos(phi)
-        y = radius * math.sin(theta) * math.sin(phi) + 0.45
-        z = radius * math.cos(theta)
+    # Head with facial features
+    for i in range(150):
+        theta = math.acos(2 * (i / 150) - 1)
+        phi = (i / 150) * math.pi * 2 * 3
+        r = 0.13
+        x = r * math.sin(theta) * math.cos(phi)
+        y = 0.65 + r * math.sin(theta) * math.sin(phi)
+        z = r * math.cos(theta)
         points.append({"x": x, "y": y, "z": z})
     
-    # Body
+    # Neck
+    for i in range(30):
+        angle = (i / 30) * 2 * math.pi
+        points.append({
+            "x": math.cos(angle) * 0.06,
+            "y": 0.52 + (i % 5) * 0.02,
+            "z": math.sin(angle) * 0.06
+        })
+    
+    # Shoulders
+    for side in [-1, 1]:
+        for i in range(40):
+            t = i / 40
+            points.append({
+                "x": side * (0.18 + t * 0.15),
+                "y": 0.45 - t * 0.05,
+                "z": (random.random() - 0.5) * 0.12
+            })
+    
+    # Torso with chest and abdomen definition
     for i in range(300):
-        height = (i / 300) * 0.5
-        angle = (i / 300) * 2 * math.pi * 3
-        radius = 0.15
-        x = radius * math.cos(angle) * 0.5
-        z = radius * math.sin(angle) * 0.3
-        y = 0.3 - height
-        points.append({"x": x, "y": y, "z": z})
+        height = i / 300
+        width = 0.16 * (1 - abs(height - 0.5) * 0.3)
+        angle = random.random() * math.pi * 2
+        points.append({
+            "x": math.cos(angle) * width * (0.8 + random.random() * 0.4),
+            "y": 0.45 - height * 0.65,
+            "z": math.sin(angle) * width * 0.6
+        })
     
-    # Arms
+    # Arms with bend at elbow
     for side in [-1, 1]:
-        for i in range(150):
-            height = (i / 150) * 0.4
-            x = side * (0.15 + height * 0.3)
-            y = 0.2 - height
-            z = 0
-            points.append({"x": x, "y": y, "z": z})
+        for i in range(120):
+            t = i / 120
+            upper_arm = t < 0.5
+            segment_t = (t * 2) if upper_arm else ((t - 0.5) * 2)
+            
+            if upper_arm:
+                points.append({
+                    "x": side * (0.28 + segment_t * 0.1),
+                    "y": 0.4 - segment_t * 0.35,
+                    "z": segment_t * 0.1
+                })
+            else:
+                points.append({
+                    "x": side * (0.38 + segment_t * 0.05),
+                    "y": 0.05 - segment_t * 0.3,
+                    "z": 0.1 + segment_t * 0.15
+                })
     
-    # Legs
+    # Legs with knee definition
     for side in [-1, 1]:
-        for i in range(200):
-            height = (i / 200) * 0.5
-            x = side * 0.1
-            y = -0.2 - height
-            z = 0
-            points.append({"x": x, "y": y, "z": z})
+        for i in range(140):
+            t = i / 140
+            upper_leg = t < 0.5
+            segment_t = (t * 2) if upper_leg else ((t - 0.5) * 2)
+            
+            if upper_leg:
+                points.append({
+                    "x": side * (0.11 - segment_t * 0.02),
+                    "y": -0.2 - segment_t * 0.35,
+                    "z": (random.random() - 0.5) * 0.1
+                })
+            else:
+                foot_extend = (segment_t - 0.8) * 0.5 if segment_t > 0.8 else 0
+                points.append({
+                    "x": side * (0.09 + foot_extend),
+                    "y": -0.55 - segment_t * 0.35,
+                    "z": (random.random() - 0.5) * 0.08 + (0.1 if segment_t > 0.8 else 0)
+                })
     
     return points[:2000]
 

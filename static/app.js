@@ -5,6 +5,11 @@ function closeTutorial() {
     document.getElementById('tutorial').classList.remove('active');
 }
 
+// Global function for toggling help panel
+function toggleHelp() {
+    document.getElementById('help-panel').classList.toggle('active');
+}
+
 class Particle {
     constructor(x, y, z) {
         this.x = x;
@@ -117,6 +122,9 @@ class HolographicInterface {
         this.currentModel = null;
         this.inFormation = false;
         this.rotation = { x: 0, y: 0 };
+        this.manualRotation = { x: 0, y: 0 };
+        this.isDraggingRotation = false;
+        this.lastMousePos = { x: 0, y: 0 };
         this.fov = 500;
         this.attractX = 0;
         this.attractY = 0;
@@ -288,12 +296,21 @@ class HolographicInterface {
             const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
             const y = ((e.clientY - rect.top) / rect.height) * 2 - 1;
             
-            this.attractX = x;
-            this.attractY = -y;
-            this.attractStrength = 0.02 * this.sensitivity;
+            // Right-click drag for rotation
+            if (this.isDraggingRotation) {
+                const deltaX = e.clientX - this.lastMousePos.x;
+                const deltaY = e.clientY - this.lastMousePos.y;
+                this.manualRotation.y += deltaX * 0.005;
+                this.manualRotation.x += deltaY * 0.005;
+                this.lastMousePos = { x: e.clientX, y: e.clientY };
+            } else {
+                this.attractX = x;
+                this.attractY = -y;
+                this.attractStrength = 0.02 * this.sensitivity;
+            }
             
             // Free draw mode
-            if (this.freeDrawMode && this.mouseDown) {
+            if (this.freeDrawMode && this.mouseDown && !this.isDraggingRotation) {
                 this.drawnPoints.push({
                     x: x,
                     y: -y,
@@ -302,19 +319,34 @@ class HolographicInterface {
             }
         });
 
-        this.canvas.addEventListener('mousedown', () => {
-            this.mouseDown = true;
-            this.attractStrength = 0.05 * this.sensitivity;
+        this.canvas.addEventListener('mousedown', (e) => {
+            if (e.button === 2) { // Right click
+                e.preventDefault();
+                this.isDraggingRotation = true;
+                this.lastMousePos = { x: e.clientX, y: e.clientY };
+            } else {
+                this.mouseDown = true;
+                this.attractStrength = 0.05 * this.sensitivity;
+            }
         });
 
-        this.canvas.addEventListener('mouseup', () => {
-            this.mouseDown = false;
-            this.attractStrength = 0.02 * this.sensitivity;
-            
-            // Apply drawn points to particles
-            if (this.freeDrawMode && this.drawnPoints.length > 0) {
-                this.applyDrawnFormation();
+        this.canvas.addEventListener('mouseup', (e) => {
+            if (e.button === 2) {
+                this.isDraggingRotation = false;
+            } else {
+                this.mouseDown = false;
+                this.attractStrength = 0.02 * this.sensitivity;
+                
+                // Apply drawn points to particles
+                if (this.freeDrawMode && this.drawnPoints.length > 0) {
+                    this.applyDrawnFormation();
+                }
             }
+        });
+
+        // Prevent context menu on right-click
+        this.canvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
         });
 
         this.canvas.addEventListener('wheel', (e) => {
@@ -355,6 +387,9 @@ class HolographicInterface {
                 case 't':
                     document.getElementById('tutorial').classList.toggle('active');
                     break;
+                case '?':
+                    toggleHelp();
+                    break;
                 case 'g':
                     this.toggleGestureMode();
                     break;
@@ -367,16 +402,16 @@ class HolographicInterface {
                     }
                     break;
                 case 'arrowup':
-                    this.rotation.x += 0.1;
+                    this.manualRotation.x += 0.1;
                     break;
                 case 'arrowdown':
-                    this.rotation.x -= 0.1;
+                    this.manualRotation.x -= 0.1;
                     break;
                 case 'arrowleft':
-                    this.rotation.y -= 0.1;
+                    this.manualRotation.y -= 0.1;
                     break;
                 case 'arrowright':
-                    this.rotation.y += 0.1;
+                    this.manualRotation.y += 0.1;
                     break;
             }
         });
@@ -776,6 +811,12 @@ class HolographicInterface {
         if (this.inFormation) {
             this.rotation.y += 0.005;
         }
+        
+        // Combine auto and manual rotation for full 360-degree control
+        const combinedRotation = {
+            x: this.rotation.x + this.manualRotation.x,
+            y: this.rotation.y + this.manualRotation.y
+        };
 
         // Update and draw particles
         const projectedParticles = [];
@@ -793,7 +834,7 @@ class HolographicInterface {
                 this.canvas.width,
                 this.canvas.height,
                 this.fov,
-                this.rotation
+                combinedRotation
             );
             
             projectedParticles.push({ particle, ...projected });

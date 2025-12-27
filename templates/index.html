@@ -282,6 +282,140 @@
             color: #0ff;
             font-weight: bold;
         }
+
+        #help-button {
+            position: fixed;
+            top: 20px;
+            right: 100px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(0, 255, 255, 0.2);
+            border: 2px solid #0ff;
+            color: #0ff;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 100;
+            transition: all 0.3s;
+        }
+
+        #help-button:hover {
+            background: #0ff;
+            color: #000;
+            transform: scale(1.1);
+        }
+
+        #help-panel {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 200;
+            display: none;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+        }
+
+        #help-panel.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .help-content {
+            background: #000;
+            border: 2px solid #0ff;
+            border-radius: 15px;
+            padding: 40px;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .help-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #0ff;
+            padding-bottom: 15px;
+        }
+
+        .help-close {
+            background: transparent;
+            border: 2px solid #0ff;
+            color: #0ff;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            line-height: 36px;
+        }
+
+        .help-close:hover {
+            background: #0ff;
+            color: #000;
+        }
+
+        .help-section {
+            margin-bottom: 30px;
+        }
+
+        .help-section h3 {
+            color: #0ff;
+            font-size: 20px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+            padding-bottom: 8px;
+        }
+
+        .gesture-item, .control-item {
+            background: rgba(0, 255, 255, 0.1);
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 8px;
+            display: flex;
+            align-items: start;
+            gap: 12px;
+        }
+
+        .gesture-icon {
+            font-size: 32px;
+            min-width: 40px;
+        }
+
+        .gesture-details {
+            flex: 1;
+        }
+
+        .gesture-name {
+            color: #fff;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .gesture-desc {
+            color: #0ff;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .help-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+        }
+
+        .help-tip {
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid #0ff;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 13px;
+        }
     </style>
 </head>
 <body>
@@ -310,9 +444,12 @@
             Press 'H' to hide UI<br>
             Press 'T' for tutorial<br>
             Press 'G' to toggle gesture mode<br>
-            Press 'S' for settings
+            Press 'S' for settings<br>
+            Press '?' for help
         </div>
     </div>
+
+    <button id="help-button" onclick="toggleHelp()" title="Help & Gestures Guide">?</button>
 
     <div id="model-selector">
         <button class="model-btn" data-model="tree">🌳 Tree</button>
@@ -372,6 +509,86 @@
 
     <div id="gesture-indicator"></div>
     <video id="webcam-preview" autoplay playsinline></video>
+
+    <div id="help-panel">
+        <div class="help-content">
+            <div class="help-header">
+                <h2 style="color: #0ff; font-size: 28px; margin: 0;">HPI Control Guide</h2>
+                <button class="help-close" onclick="toggleHelp()">&times;</button>
+            </div>
+
+            <div class="help-grid">
+                <div class="help-section">
+                    <h3>Hand Gestures</h3>
+                    <div class="gesture-item">
+                        <div class="gesture-icon">✋</div>
+                        <div class="gesture-details">
+                            <div class="gesture-name">Open Palm</div>
+                            <div class="gesture-desc">Attract particles toward hand (1.5x strength)</div>
+                        </div>
+                    </div>
+                    <div class="gesture-item">
+                        <div class="gesture-icon">✊</div>
+                        <div class="gesture-details">
+                            <div class="gesture-name">Closed Fist</div>
+                            <div class="gesture-desc">Repel particles away (1.8x strength)</div>
+                        </div>
+                    </div>
+                    <div class="gesture-item">
+                        <div class="gesture-icon">🤏</div>
+                        <div class="gesture-details">
+                            <div class="gesture-name">Pinch</div>
+                            <div class="gesture-desc">Precise grab & drag (2.5x strength)</div>
+                        </div>
+                    </div>
+                    <div class="gesture-item">
+                        <div class="gesture-icon">☝️</div>
+                        <div class="gesture-details">
+                            <div class="gesture-name">Point</div>
+                            <div class="gesture-desc">Precise directional control</div>
+                        </div>
+                    </div>
+                    <div class="gesture-item">
+                        <div class="gesture-icon">✌️</div>
+                        <div class="gesture-details">
+                            <div class="gesture-name">Peace Sign</div>
+                            <div class="gesture-desc">Gentle attraction</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="help-section">
+                        <h3>Keyboard Controls</h3>
+                        <div style="color: #0ff; font-size: 13px; line-height: 2;">
+                            <div><strong style="color: #fff;">1-9:</strong> Select hologram model</div>
+                            <div><strong style="color: #fff;">Arrow Keys:</strong> Rotate hologram 360°</div>
+                            <div><strong style="color: #fff;">Space:</strong> Toggle formation mode</div>
+                            <div><strong style="color: #fff;">H:</strong> Hide/show UI</div>
+                            <div><strong style="color: #fff;">M/G:</strong> Toggle control mode</div>
+                            <div><strong style="color: #fff;">R:</strong> Reset particles</div>
+                            <div><strong style="color: #fff;">S:</strong> Open settings</div>
+                            <div><strong style="color: #fff;">?:</strong> Toggle help panel</div>
+                        </div>
+                    </div>
+
+                    <div class="help-section">
+                        <h3>Mouse Controls</h3>
+                        <div style="color: #0ff; font-size: 13px; line-height: 2;">
+                            <div><strong style="color: #fff;">Move:</strong> Attract particles</div>
+                            <div><strong style="color: #fff;">Click:</strong> Stronger attraction</div>
+                            <div><strong style="color: #fff;">Right Drag:</strong> 360° rotation</div>
+                            <div><strong style="color: #fff;">Scroll:</strong> Zoom in/out</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="help-tip">
+                <strong style="color: #fff;">Pro Tip:</strong> For gesture mode, ensure good lighting and camera permissions. Hand should be visible with palm facing camera for best tracking.
+            </div>
+        </div>
+    </div>
 
     <div id="tutorial">
         <button class="close-tutorial" onclick="closeTutorial()" title="Close Tutorial">×</button>
