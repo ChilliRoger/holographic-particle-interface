@@ -2,23 +2,41 @@
 import React, { useRef, useMemo, useEffect } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { PresetModel, InteractionPoint, AppSettings } from '../types';
+import { PresetModel, InteractionPoint, AppSettings, ParticleTarget } from '../types';
 import { generateModelCoordinates } from '../services/geometryGenerator';
 import { TRANSITION_SPEED, BROWNIAN_STRENGTH } from '../constants';
 
 interface ParticleSystemProps {
   preset: PresetModel;
+  customModel: ParticleTarget[] | null;
   interactionPoint: InteractionPoint;
   settings: AppSettings;
   manualRotation: { x: number; y: number };
+  zoomLevel: number;
 }
 
-const ParticleSystem: React.FC<ParticleSystemProps> = ({ preset, interactionPoint, settings, manualRotation }) => {
+const ParticleSystem: React.FC<ParticleSystemProps> = ({ preset, customModel, interactionPoint, settings, manualRotation, zoomLevel }) => {
   const pointsRef = useRef<THREE.Points>(null!);
-  const { size, viewport } = useThree();
+  const { size, viewport, camera } = useThree();
   
-  // Targets and positions
-  const targets = useMemo(() => generateModelCoordinates(preset, settings.particleCount), [preset, settings.particleCount]);
+  // Update camera position based on zoom level
+  useEffect(() => {
+    camera.position.z = zoomLevel;
+  }, [zoomLevel, camera]);
+  
+  // Targets and positions - use customModel if preset is CUSTOM, otherwise generate
+  const targets = useMemo(() => {
+    if (preset === PresetModel.CUSTOM && customModel && customModel.length > 0) {
+      // Scale custom model to match particle count
+      const scaledModel: ParticleTarget[] = [];
+      for (let i = 0; i < settings.particleCount; i++) {
+        const sourcePoint = customModel[i % customModel.length];
+        scaledModel.push({ ...sourcePoint });
+      }
+      return scaledModel;
+    }
+    return generateModelCoordinates(preset, settings.particleCount);
+  }, [preset, customModel, settings.particleCount]);
   
   // Initialize positions randomly
   const initialPositions = useMemo(() => {
@@ -112,17 +130,19 @@ const ParticleSystem: React.FC<ParticleSystemProps> = ({ preset, interactionPoin
 
 interface HologramViewProps {
   preset: PresetModel;
+  customModel: ParticleTarget[] | null;
   interactionPoint: InteractionPoint;
   settings: AppSettings;
   manualRotation: { x: number; y: number };
+  zoomLevel: number;
 }
 
-const HologramView: React.FC<HologramViewProps> = ({ preset, interactionPoint, settings, manualRotation }) => {
+const HologramView: React.FC<HologramViewProps> = ({ preset, customModel, interactionPoint, settings, manualRotation, zoomLevel }) => {
   return (
     <div className="fixed inset-0 bg-black z-0">
       <Canvas camera={{ position: [0, 0, 5], fov: 45 }}>
         <ambientLight intensity={0.5} />
-        <ParticleSystem preset={preset} interactionPoint={interactionPoint} settings={settings} manualRotation={manualRotation} />
+        <ParticleSystem preset={preset} customModel={customModel} interactionPoint={interactionPoint} settings={settings} manualRotation={manualRotation} zoomLevel={zoomLevel} />
       </Canvas>
     </div>
   );

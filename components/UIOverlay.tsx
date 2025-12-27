@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { ControlMode, PresetModel, AppSettings } from '../types';
 import { COLOR_SCHEMES } from '../constants';
 
@@ -8,9 +8,11 @@ interface UIOverlayProps {
   currentPreset: PresetModel;
   settings: AppSettings;
   visible: boolean;
+  isProcessing: boolean;
   onToggleMode: () => void;
   onSetPreset: (p: PresetModel) => void;
   onUpdateSettings: (s: Partial<AppSettings>) => void;
+  onImageUpload: (file: File) => void;
 }
 
 const UIOverlay: React.FC<UIOverlayProps> = ({ 
@@ -18,10 +20,14 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
   currentPreset, 
   settings, 
   visible,
+  isProcessing,
   onToggleMode,
   onSetPreset,
-  onUpdateSettings
+  onUpdateSettings,
+  onImageUpload
 }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   if (!visible) return null;
 
   return (
@@ -34,12 +40,38 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
           <div>OBJECT: <span className="text-white">{currentPreset}</span></div>
           <div>PARTICLES: <span className="text-white">{settings.particleCount}</span></div>
         </div>
-        <button 
-          onClick={onToggleMode}
-          className="mt-4 px-3 py-1 bg-cyan-500/20 border border-cyan-500 text-[10px] hover:bg-cyan-500 hover:text-black transition-all font-bold uppercase"
-        >
-          Switch to {mode === ControlMode.CURSOR ? 'Gesture' : 'Cursor'} Control
-        </button>
+        
+        <div className="flex flex-col gap-2 mt-4">
+          <button 
+            onClick={onToggleMode}
+            className="px-3 py-1 bg-cyan-500/20 border border-cyan-500 text-[10px] hover:bg-cyan-500 hover:text-black transition-all font-bold uppercase"
+          >
+            Switch to {mode === ControlMode.CURSOR ? 'Gesture' : 'Cursor'} Control
+          </button>
+          
+          <button 
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isProcessing}
+            className={`px-3 py-1 border text-[10px] font-bold uppercase transition-all ${isProcessing ? 'border-gray-600 text-gray-600' : 'bg-white/10 border-white text-white hover:bg-white hover:text-black'}`}
+          >
+            {isProcessing ? 'GENERATING 3D MODEL...' : 'UPLOAD IMAGE (IMAGE -> 3D)'}
+          </button>
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                console.log('File selected:', file.name, file.type, file.size);
+                onImageUpload(file);
+                // Reset input so same file can be uploaded again
+                e.target.value = '';
+              }
+            }}
+            accept="image/png,image/jpeg,image/jpg"
+            className="hidden"
+          />
+        </div>
       </div>
 
       {/* Top Right: Settings */}
@@ -79,7 +111,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
       </div>
 
       {/* Bottom Right: Presets */}
-      <div className="absolute bottom-8 right-8 pointer-events-auto flex gap-2">
+      <div className="absolute bottom-8 right-8 pointer-events-auto flex flex-wrap justify-end gap-2 max-w-[400px]">
         {Object.values(PresetModel).map(p => (
           <button
             key={p}

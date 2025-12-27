@@ -3,12 +3,16 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import HologramView from './components/HologramView';
 import UIOverlay from './components/UIOverlay';
 import GestureProcessor from './components/GestureProcessor';
-import { ControlMode, PresetModel, InteractionPoint, AppSettings } from './types';
+import { ControlMode, PresetModel, InteractionPoint, AppSettings, ParticleTarget } from './types';
 import { PARTICLE_COUNT, DEFAULT_COLOR } from './constants';
+import { generate3DBlueprint } from './services/geminiReconstruction';
 
 const App: React.FC = () => {
   const [mode, setMode] = useState<ControlMode>(ControlMode.CURSOR);
-  const [currentPreset, setCurrentPreset] = useState<PresetModel>(PresetModel.DNA);
+  const [currentPreset, setCurrentPreset] = useState<PresetModel>(PresetModel.CUBE);
+  const [customModel, setCustomModel] = useState<ParticleTarget[] | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [uiVisible, setUiVisible] = useState(true);
   const [helpVisible, setHelpVisible] = useState(false);
   const [lastGesture, setLastGesture] = useState<string>('');
@@ -28,6 +32,7 @@ const App: React.FC = () => {
   });
 
   const [manualRotation, setManualRotation] = useState({ x: 0, y: 0 });
+  const [zoomLevel, setZoomLevel] = useState(5); // Camera distance
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
@@ -86,6 +91,22 @@ const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [toggleMode]);
 
+  // Mouse wheel zoom
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      setZoomLevel(prev => {
+        const delta = e.deltaY * 0.01;
+        const newZoom = prev + delta;
+        // Clamp between 2 and 15 for reasonable viewing range
+        return Math.max(2, Math.min(15, newZoom));
+      });
+    };
+
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    return () => window.removeEventListener('wheel', handleWheel);
+  }, []);
+
   // Mouse drag for 360-degree rotation
   useEffect(() => {
     const handleMouseDown = (e: MouseEvent) => {
@@ -133,9 +154,11 @@ const App: React.FC = () => {
     <div className="relative w-full h-screen bg-black overflow-hidden select-none">
       <HologramView 
         preset={currentPreset} 
+        customModel={customModel}
         interactionPoint={interactionPoint} 
         settings={settings}
         manualRotation={manualRotation}
+        zoomLevel={zoomLevel}
       />
 
       <GestureProcessor 
@@ -150,29 +173,67 @@ const App: React.FC = () => {
         currentPreset={currentPreset}
         settings={settings}
         visible={uiVisible}
+        isProcessing={isUploading}
         onToggleMode={toggleMode}
         onSetPreset={setCurrentPreset}
         onUpdateSettings={handleUpdateSettings}
+        onImageUpload={(file) => {
+          // Validate file type
+          if (!file.type.match(/^image\/(jpeg|jpg|png)$/i)) {
+            setUploadError("Only JPEG and PNG images are supported.");
+            return;
+          }
+          
+          setIsUploading(true);
+          setUploadError(null);
+          
+          const reader = new FileReader();
+          reader.onload = async (event) => {
+            const base64Image = event.target?.result as string;
+            try {
+              const points = await generate3DBlueprint(base64Image);
+              setCustomModel(points);
+              setCurrentPreset(PresetModel.CUSTOM);
+              setIsUploading(false);
+            } catch (error) {
+              console.error("Failed to generate 3D blueprint:", error);
+              setUploadError(error instanceof Error ? error.message : "Failed to process image");
+              setIsUploading(false);
+            }
+          };
+          reader.onerror = () => {
+            setUploadError("Failed to read image file");
+            setIsUploading(false);
+          };
+          reader.readAsDataURL(file);
+        }}
       />
 
       {/* Help Button */}
       <button
         onClick={() => setHelpVisible(v => !v)}
-        className="fixed bottom-[82px] right-8 w-16 h-16 bg-cyan-500/30 border-2 border-cyan-500 rounded-full text-cyan-400 text-2xl font-bold hover:bg-cyan-500 hover:text-black transition-all z-50 shadow-lg shadow-cyan-500/50"
+        className="fixed bottom-[102px] right-8 w-16 h-16 bg-cyan-500/30 border-2 border-cyan-500 rounded-full text-cyan-400 text-2xl font-bold hover:bg-cyan-500 hover:text-black transition-all z-50 shadow-lg shadow-cyan-500/50"
         title="Help & Gestures Guide"
       >
         ?
       </button>
 
+      {uploadError && (
+        <div className="fixed top-8 left-1/2 -translate-x-1/2 text-red-400 text-xs bg-black/90 border border-red-500 px-4 py-2 rounded z-50">
+          {uploadError}
+        </div>
+      )}
+
       {/* Help Panel */}
       {helpVisible && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-8" onClick={() => setHelpVisible(false)}>
-          <div className="bg-black border-2 border-cyan-500 rounded-lg p-8 max-w-4xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-6">
+          <div className="bg-black border-2 border-cyan-500 rounded-lg max-w-4xl w-full max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center p-8 pb-4 border-b border-cyan-500/30">
               <h2 className="text-3xl font-bold text-cyan-400">HPI Control Guide</h2>
               <button onClick={() => setHelpVisible(false)} className="text-cyan-400 hover:text-white text-3xl leading-none">&times;</button>
             </div>
 
+            <div className="overflow-y-auto p-8 pt-6" style={{scrollbarWidth: 'thin', scrollbarColor: '#06b6d4 transparent'}}>
             <div className="grid md:grid-cols-2 gap-6 text-sm">
               {/* Gesture Controls */}
               <div>
@@ -246,6 +307,24 @@ const App: React.FC = () => {
 
               {/* Keyboard Controls */}
               <div>
+                <h3 className="text-xl font-bold text-cyan-400 mb-4 border-b border-cyan-500 pb-2">Image Upload</h3>
+                <div className="space-y-3 mb-6">
+                  <div className="flex items-start gap-3 p-3 bg-purple-500/10 rounded border border-purple-500/30">
+                    <span className="text-3xl">📤</span>
+                    <div>
+                      <div className="font-bold text-white">Custom 3D Upload</div>
+                      <div className="text-cyan-300 text-xs">Upload JPEG/PNG images to generate custom 3D particle formations</div>
+                    </div>
+                  </div>
+                  <div className="text-cyan-300/70 text-xs pl-3">
+                    • Click "UPLOAD IMAGE" button in control panel<br/>
+                    • Select JPEG or PNG file from your device<br/>
+                    • AI converts image to 3D holographic model<br/>
+                    • Edge-detected outlines become particle points<br/>
+                    • Model auto-scales to fit screen perfectly
+                  </div>
+                </div>
+
                 <h3 className="text-xl font-bold text-cyan-400 mb-4 border-b border-cyan-500 pb-2">Keyboard Controls</h3>
                 <div className="space-y-2 text-cyan-300">
                   <div className="flex justify-between p-2 bg-cyan-500/5 rounded">
@@ -301,7 +380,8 @@ const App: React.FC = () => {
             </div>
 
             <div className="mt-6 p-4 bg-cyan-500/10 border border-cyan-500 rounded text-cyan-300 text-xs">
-              <strong className="text-cyan-400">Pro Tip:</strong> For gesture mode, ensure good lighting and camera permissions. Hand should be visible with palm facing camera for best tracking.
+              <strong className="text-cyan-400">Pro Tips:</strong> For gesture mode, ensure good lighting and camera permissions. Hand should be visible with palm facing camera for best tracking. Upload images with clear edges and high contrast for best 3D conversion results.
+            </div>
             </div>
           </div>
         </div>

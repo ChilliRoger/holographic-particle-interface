@@ -12,20 +12,25 @@ HPI is a modern React application built with React 19, TypeScript, Three.js, and
 
 - **Particle System**: Dynamic particle simulation with 4,000-8,000 particles
 - **Preset Formations**: 6 built-in 3D geometric shapes including Cube, Sphere, Cylinder, Cone, Torus, and Pyramid
+- **Custom Image Upload**: Transform any JPEG/PNG image into a 3D holographic particle formation using client-side edge detection
 - **Dual Control Modes**: Switch between cursor-based and gesture-based interaction
 - **Hand Gesture Recognition**: MediaPipe integration for real-time hand tracking and gesture classification
 - **360-Degree Rotation**: Full manual control with arrow keys or right-click drag
-- **Interactive Help System**: Comprehensive gesture guide and controls reference
+- **Mouse Wheel Zoom**: Smooth zoom in/out functionality (range: 2-15 units)
+- **Interactive Help System**: Comprehensive gesture guide and controls reference with scrollable interface
 - **Settings Panel**: Adjustable particle count, color schemes, sensitivity, and rotation speed
 - **Morphing Transitions**: Smooth interpolation between different formations
 
 ### Gesture Controls
 
-- **Open Palm**: Attract particles toward hand position
-- **Closed Fist**: Repel particles away from hand
-- **Pinch Gesture**: Precise grab and drag manipulation
-- **Point Gesture**: Focus interaction on specific areas
-- **Peace Sign**: Alternative interaction mode
+- **Open Palm** (5 fingers extended): 360° rotation - move hand to rotate hologram
+- **Point Gesture** (1 finger): Attract particles toward finger with 2.5x strength
+- **Closed Fist**: Repel particles away from hand with 1.8x strength
+- **Pinch Gesture**: Precise grab and drag manipulation with 2.5x strength
+- **Peace Sign** (2 fingers): Alternative 360° rotation mode
+- **Thumbs Up/Down**: Zoom in/out controls
+- **OK Sign**: Standard attraction
+- **Rock Sign**: Strong attraction (1.5x)
 
 ## Technology Stack
 
@@ -49,9 +54,6 @@ HPI is a modern React application built with React 19, TypeScript, Three.js, and
 # Install dependencies
 npm install
 
-# Set environment variables (optional for AI Studio deployment)
-# Edit .env.local and add your GEMINI_API_KEY
-
 # Start development server
 npm run dev
 ```
@@ -65,20 +67,21 @@ The application will be available at `http://localhost:3000`
 | Key | Action |
 |-----|--------|
 | 1-6 | Select geometric shape (1=Cube, 2=Sphere, 3=Cylinder, 4=Cone, 5=Torus, 6=Pyramid) |
+| 7 | Load custom uploaded image model |
 | 9 | Enter free flow mode |
 | Arrow Keys | Rotate hologram formation 360 degrees |
-| ? | Toggle help panel with gesture guide |
+| ? | Toggle scrollable help panel with gesture guide |
 | Spacebar | Toggle formation mode on/off |
 | R | Reset particles to random positions |
-| S | Toggle settings panel |
-| G/M | Toggle between gesture and cursor control |
+| M | Toggle between gesture and cursor control |
 | H | Hide/show UI overlay |
 
 ### Mouse Controls
 
-- **Move Mouse**: Attract particles toward cursor
-- **Right-Click & Drag**: Rotate hologram 360 degrees
-- **Scroll Wheel**: Zoom in/out (React version)
+- **Move Mouse**: Attract particles toward cursor (in cursor mode)
+- **Left Click**: Stronger attraction force
+- **Right-Click & Drag**: Rotate hologram 360 degrees in any direction
+- **Mouse Wheel**: Smooth zoom in/out (range: 2-15 units)
 
 ### Settings
 
@@ -87,6 +90,30 @@ The application will be available at `http://localhost:3000`
 - **Color Schemes**: Choose from Cyan Glow, Matrix Green, Electric Purple, Plasma Pink, Sunfire, or Pure White
 - **Rotation Speed**: Adjust automatic rotation speed (0 - 10)
 - **Formation Lock**: Enable/disable formation mode
+
+### Custom Image Upload
+
+Transform any image into a 3D holographic particle formation:
+
+1. **Click "UPLOAD IMAGE"** button in the control panel (top-left)
+2. **Select a JPEG or PNG file** from your device
+3. **AI Processing**: Client-side edge detection extracts contours and features
+4. **3D Conversion**: Image is converted to particle coordinates with depth mapping
+5. **Auto-Scaling**: Model automatically scales to fit within screen boundaries
+
+**Best Practices for Image Upload:**
+- Use images with clear, defined edges and high contrast
+- Simple objects work better than complex scenes
+- Logos, silhouettes, and line art produce excellent results
+- File size: recommended under 5MB for faster processing
+- Resolution: 300-1000px optimal for clarity
+
+**Technical Details:**
+- Uses Sobel edge detection algorithm (threshold: 60)
+- Generates 400-700 particle points from image
+- Edge-focused sampling (80% edges, 5% fill)
+- Depth calculated from image brightness
+- No API key required - runs entirely in browser
 
 ## Architecture
 
@@ -104,7 +131,8 @@ The application will be available at `http://localhost:3000`
 │   ├── GestureProcessor.tsx         # MediaPipe gesture handling
 │   └── UIOverlay.tsx                # UI controls and HUD
 ├── services/
-│   └── geometryGenerator.ts         # 3D model coordinate generation
+│   ├── geometryGenerator.ts         # 3D model coordinate generation
+│   └── geminiReconstruction.ts      # Image-to-3D conversion (client-side)
 ├── vite.config.ts                   # Vite build configuration
 └── tsconfig.json                    # TypeScript configuration
 ```
@@ -124,14 +152,20 @@ npm run preview
 
 ## Deployment
 
-### AI Studio Deployment
+### Production Build
 
-1. Ensure `GEMINI_API_KEY` is set in `.env.local`
-2. Run `npm run build` to create production bundle
-3. Deploy the `dist/` directory to AI Studio
-4. Configure the deployment following AI Studio documentation
+1. Run `npm run build` to create production bundle
+2. Deploy the `dist/` directory to your hosting service
+3. Ensure HTTPS is enabled for webcam/camera access
+4. Configure proper CORS settings if needed
 
-View deployed application: [AI Studio](https://ai.studio/apps/drive/1fvWmPdXj407E_Tf7byguy6zrf29M-WbZ)
+### Hosting Recommendations
+
+- **Vercel/Netlify**: Automatic deployment from Git repository
+- **GitHub Pages**: Free hosting for static sites
+- **AI Studio**: Full-featured AI application hosting
+
+**Note:** Custom image upload feature requires no backend or API keys - everything runs client-side in the browser.
 
 ## Browser Compatibility
 

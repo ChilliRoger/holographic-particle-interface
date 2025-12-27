@@ -167,16 +167,15 @@ const GestureProcessor: React.FC<GestureProcessorProps> = ({
             } else if (extendedFingers >= 4 && thumbExtended) {
               // Open palm - 360° rotation control
               type = 'attract';
-              strength = 1.5;
+              strength = 0.3; // Lower strength so it doesn't interfere with rotation
               gestureType = 'OPEN_PALM_ROTATE';
               
-              // Use hand movement for rotation
-              const movementThreshold = 0.01;
-              if (Math.abs(handDeltaX) > movementThreshold || Math.abs(handDeltaY) > movementThreshold) {
+              // Always active rotation when palm is open, based on hand movement
+              if (Math.abs(handDeltaX) > 0.002 || Math.abs(handDeltaY) > 0.002) {
                 rotationData = {
                   active: true,
-                  deltaX: handDeltaX * 15, // Scale for visible rotation
-                  deltaY: handDeltaY * 15
+                  deltaX: handDeltaY * 20, // Increased sensitivity for smoother rotation
+                  deltaY: handDeltaX * 20
                 };
               }
             } else if (extendedFingers === 2 && !thumbExtended) {
