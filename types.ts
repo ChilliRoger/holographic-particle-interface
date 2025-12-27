@@ -5,17 +5,12 @@ export enum ControlMode {
 }
 
 export enum PresetModel {
-  TREE = 'Abstract Tree',
-  CAR = 'Sedan',
-  AIRPLANE = 'Airplane',
-  HUMAN = 'Humanoid',
-  DNA = 'DNA Helix',
-  HEART = 'Heart',
-  SPHERE = 'Sphere',
   CUBE = 'Cube',
-  GALAXY = 'Galaxy',
-  HOUSE = 'House',
-  LAPTOP = 'Laptop',
+  SPHERE = 'Sphere',
+  CYLINDER = 'Cylinder',
+  CONE = 'Cone',
+  TORUS = 'Torus',
+  PYRAMID = 'Pyramid',
   FREE = 'Free Flow'
 }
 

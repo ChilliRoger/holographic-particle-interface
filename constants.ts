@@ -15,10 +15,11 @@ export const COLOR_SCHEMES = [
 ];
 
 export const GESTURE_MAPPINGS = {
-  OPEN_PALM: 'Attract',
+  OPEN_PALM: 'Rotate 360°',
   CLOSED_FIST: 'Repel',
   PINCH: 'Grab & Drag',
-  PEACE: 'Rotate',
+  POINT: 'Attract',
+  PEACE: 'Alternative Rotate',
   THUMBS_UP: 'Scale Up',
   THUMBS_DOWN: 'Scale Down'
 };

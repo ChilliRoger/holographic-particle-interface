@@ -39,7 +39,14 @@ const App: React.FC = () => {
     setSettings(prev => ({ ...prev, ...newSettings }));
   }, []);
 
-  const handleInteractionUpdate = useCallback((point: InteractionPoint) => {
+  const handleInteractionUpdate = useCallback((point: any) => {
+    // Handle rotation gesture data
+    if (point.rotation && point.rotation.active) {
+      setManualRotation(r => ({
+        x: r.x + point.rotation.deltaY,
+        y: r.y + point.rotation.deltaX
+      }));
+    }
     setInteractionPoint(point);
   }, []);
 
@@ -151,7 +158,7 @@ const App: React.FC = () => {
       {/* Help Button */}
       <button
         onClick={() => setHelpVisible(v => !v)}
-        className="fixed top-8 right-8 w-12 h-12 bg-cyan-500/20 border-2 border-cyan-500 rounded-full text-cyan-400 text-xl font-bold hover:bg-cyan-500 hover:text-black transition-all z-50"
+        className="fixed bottom-[82px] right-8 w-16 h-16 bg-cyan-500/30 border-2 border-cyan-500 rounded-full text-cyan-400 text-2xl font-bold hover:bg-cyan-500 hover:text-black transition-all z-50 shadow-lg shadow-cyan-500/50"
         title="Help & Gestures Guide"
       >
         ?
@@ -175,7 +182,7 @@ const App: React.FC = () => {
                     <span className="text-3xl">✋</span>
                     <div>
                       <div className="font-bold text-white">Open Palm</div>
-                      <div className="text-cyan-300 text-xs">Attract particles toward hand (1.5x strength)</div>
+                      <div className="text-cyan-300 text-xs">360° rotation - move hand to rotate hologram</div>
                     </div>
                   </div>
                   <div className="flex items-start gap-3 p-3 bg-cyan-500/10 rounded">
@@ -196,14 +203,42 @@ const App: React.FC = () => {
                     <span className="text-3xl">☝️</span>
                     <div>
                       <div className="font-bold text-white">Point</div>
-                      <div className="text-cyan-300 text-xs">Precise directional control</div>
+                      <div className="text-cyan-300 text-xs">Attract particles toward finger (2.5x strength)</div>
                     </div>
                   </div>
                   <div className="flex items-start gap-3 p-3 bg-cyan-500/10 rounded">
                     <span className="text-3xl">✌️</span>
                     <div>
                       <div className="font-bold text-white">Peace Sign</div>
-                      <div className="text-cyan-300 text-xs">Gentle attraction with rotation hint</div>
+                      <div className="text-cyan-300 text-xs">Alternative 360° rotation mode</div>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 bg-cyan-500/10 rounded">
+                    <span className="text-3xl">👍</span>
+                    <div>
+                      <div className="font-bold text-white">Thumbs Up</div>
+                      <div className="text-cyan-300 text-xs">Zoom in / scale up</div>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 bg-cyan-500/10 rounded">
+                    <span className="text-3xl">👎</span>
+                    <div>
+                      <div className="font-bold text-white">Thumbs Down</div>
+                      <div className="text-cyan-300 text-xs">Zoom out / scale down</div>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 bg-cyan-500/10 rounded">
+                    <span className="text-3xl">👌</span>
+                    <div>
+                      <div className="font-bold text-white">OK Sign</div>
+                      <div className="text-cyan-300 text-xs">Standard attraction</div>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 bg-cyan-500/10 rounded">
+                    <span className="text-3xl">🤘</span>
+                    <div>
+                      <div className="font-bold text-white">Rock Sign</div>
+                      <div className="text-cyan-300 text-xs">Strong attraction (1.5x)</div>
                     </div>
                   </div>
                 </div>

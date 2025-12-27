@@ -23,6 +23,9 @@ const GestureProcessor: React.FC<GestureProcessorProps> = ({
   const [error, setError] = useState<string | null>(null);
   const handsRef = useRef<any>(null);
   const cameraRef = useRef<any>(null);
+  const previousHandPositionRef = useRef<{ x: number; y: number } | null>(null);
+  const gestureStartTimeRef = useRef<number>(0);
+  const rotationAccumulatorRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   useEffect(() => {
     if (mode === ControlMode.CURSOR) {
@@ -59,88 +62,170 @@ const GestureProcessor: React.FC<GestureProcessorProps> = ({
             const wrist = landmarks[0];
             const indexTip = landmarks[8];
             const thumbTip = landmarks[4];
+            const middleTip = landmarks[12];
+            const ringTip = landmarks[16];
+            const pinkyTip = landmarks[20];
             
-            // Smoothed position using index finger tip for more precise tracking
-            const trackPoint = landmarks[9]; // Middle of hand for stability
+            // Smoothed position using middle of hand for stability
+            const trackPoint = landmarks[9];
             const ix = (trackPoint.x * 2 - 1);
             const iy = -(trackPoint.y * 2 - 1);
             
-            // Enhanced Gesture Detection with better accuracy
+            // Enhanced Gesture Detection
             const fingerTips = [8, 12, 16, 20]; // Index, Middle, Ring, Pinky
-            const fingerPips = [6, 10, 14, 18]; // PIP joints (middle joints)
-            const fingerMcps = [5, 9, 13, 17]; // MCP joints (knuckles)
+            const fingerPips = [6, 10, 14, 18]; // PIP joints
+            const fingerMcps = [5, 9, 13, 17]; // MCP joints
             
-            // Count extended fingers with better detection
+            // Count extended fingers
             let extendedFingers = 0;
+            const fingerStates: boolean[] = [];
             fingerTips.forEach((tip, i) => {
               const tipY = landmarks[tip].y;
               const pipY = landmarks[fingerPips[i]].y;
               const mcpY = landmarks[fingerMcps[i]].y;
-              
-              // Finger is extended if tip is above both joints
-              if (tipY < pipY && tipY < mcpY) {
-                extendedFingers++;
-              }
+              const isExtended = tipY < pipY && tipY < mcpY;
+              fingerStates.push(isExtended);
+              if (isExtended) extendedFingers++;
             });
 
-            // Thumb detection (different logic due to thumb orientation)
+            // Thumb detection
             const thumbExtended = Math.abs(landmarks[4].x - landmarks[2].x) > 0.1;
             
-            // Calculate pinch distance for pinch detection
+            // Pinch detection
             const pinchDist = Math.sqrt(
               Math.pow(indexTip.x - thumbTip.x, 2) + 
               Math.pow(indexTip.y - thumbTip.y, 2)
             );
             const isPinching = pinchDist < 0.05;
 
+            // OK sign detection (thumb and index form circle)
+            const okDist = Math.sqrt(
+              Math.pow(indexTip.x - thumbTip.x, 2) + 
+              Math.pow(indexTip.y - thumbTip.y, 2)
+            );
+            const isOkSign = okDist < 0.08 && okDist > 0.03 && extendedFingers >= 2;
+
+            // Rock sign detection (index and pinky extended, middle and ring folded)
+            const isRockSign = fingerStates[0] && !fingerStates[1] && !fingerStates[2] && fingerStates[3];
+
+            // Thumbs up detection
+            const isThumbsUp = thumbExtended && extendedFingers === 0 && landmarks[4].y < landmarks[2].y;
+            
+            // Thumbs down detection
+            const isThumbsDown = thumbExtended && extendedFingers === 0 && landmarks[4].y > landmarks[2].y;
+
+            // L-shape detection (thumb and index extended at right angle)
+            const isLShape = thumbExtended && fingerStates[0] && extendedFingers === 1;
+
+            // Track hand movement for rotation gestures
+            const currentPos = { x: trackPoint.x, y: trackPoint.y };
+            let handDeltaX = 0;
+            let handDeltaY = 0;
+            
+            if (previousHandPositionRef.current) {
+              handDeltaX = currentPos.x - previousHandPositionRef.current.x;
+              handDeltaY = currentPos.y - previousHandPositionRef.current.y;
+            }
+            previousHandPositionRef.current = currentPos;
+
             let type: 'attract' | 'repel' | 'pinch' = 'attract';
             let strength = 1.0;
             let gestureType = 'NEUTRAL';
+            let rotationData = { active: false, deltaX: 0, deltaY: 0 };
 
             // Gesture Classification with priority order
             if (isPinching) {
               type = 'pinch';
               strength = 2.5;
               gestureType = 'PINCH';
+            } else if (isThumbsUp) {
+              type = 'attract';
+              strength = 0.5;
+              gestureType = 'THUMBS_UP';
+              // Zoom in effect handled by parent
+            } else if (isThumbsDown) {
+              type = 'repel';
+              strength = 0.5;
+              gestureType = 'THUMBS_DOWN';
+              // Zoom out effect handled by parent
+            } else if (isOkSign) {
+              type = 'attract';
+              strength = 1.0;
+              gestureType = 'OK_SIGN';
+            } else if (isRockSign) {
+              type = 'attract';
+              strength = 1.5;
+              gestureType = 'ROCK_SIGN';
+            } else if (isLShape) {
+              type = 'attract';
+              strength = 0.8;
+              gestureType = 'L_SHAPE';
             } else if (extendedFingers === 0 && !thumbExtended) {
               type = 'repel';
               strength = 1.8;
               gestureType = 'CLOSED_FIST';
             } else if (extendedFingers >= 4 && thumbExtended) {
+              // Open palm - 360° rotation control
               type = 'attract';
               strength = 1.5;
-              gestureType = 'OPEN_PALM';
+              gestureType = 'OPEN_PALM_ROTATE';
+              
+              // Use hand movement for rotation
+              const movementThreshold = 0.01;
+              if (Math.abs(handDeltaX) > movementThreshold || Math.abs(handDeltaY) > movementThreshold) {
+                rotationData = {
+                  active: true,
+                  deltaX: handDeltaX * 15, // Scale for visible rotation
+                  deltaY: handDeltaY * 15
+                };
+              }
             } else if (extendedFingers === 2 && !thumbExtended) {
-              // Peace sign - special rotation gesture
+              // Peace sign - rotation mode
               type = 'attract';
               strength = 0.8;
-              gestureType = 'PEACE';
+              gestureType = 'PEACE_ROTATE';
+              
+              // Continuous rotation based on hand position
+              rotationData = {
+                active: true,
+                deltaX: handDeltaY * 8,
+                deltaY: handDeltaX * 8
+              };
             } else if (extendedFingers === 1 && !thumbExtended) {
-              // Pointing - precise control
               type = 'attract';
-              strength = 1.2;
+              strength = 2.5;
               gestureType = 'POINT';
             } else {
               type = 'attract';
-              strength = 1.0;
+              strength = 0.5;
               gestureType = 'NEUTRAL';
             }
 
             onGestureDetected(gestureType);
-            onInteractionUpdate({
+            
+            // Send interaction update with rotation data
+            const interactionData: any = {
               x: ix,
               y: iy,
-              z: -trackPoint.z * 3, // Use depth with better scaling
+              z: -trackPoint.z * 3,
               active: true,
               type,
               strength
-            });
+            };
+            
+            // Add rotation data if applicable
+            if (rotationData.active) {
+              interactionData.rotation = rotationData;
+            }
+            
+            onInteractionUpdate(interactionData);
 
             // Enhanced visual feedback
             canvasCtx.save();
             
             // Draw hand skeleton
-            canvasCtx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
+            const skeletonColor = rotationData.active ? 'rgba(255, 100, 255, 0.7)' : 'rgba(0, 255, 255, 0.5)';
+            canvasCtx.strokeStyle = skeletonColor;
             canvasCtx.lineWidth = 2;
             const connections = [
               [0, 1], [1, 2], [2, 3], [3, 4], // Thumb
@@ -165,18 +250,52 @@ const GestureProcessor: React.FC<GestureProcessorProps> = ({
             });
             
             // Draw tracking point with gesture-based color
-            const color = type === 'repel' ? '#ff0066' : type === 'pinch' ? '#00ff00' : '#00ffff';
+            let color = '#00ffff';
+            if (type === 'repel') color = '#ff0066';
+            else if (type === 'pinch') color = '#00ff00';
+            else if (rotationData.active) color = '#ff00ff';
+            else if (gestureType.includes('THUMBS')) color = '#ffaa00';
+            
             canvasCtx.beginPath();
             canvasCtx.arc(
               trackPoint.x * canvasRef.current.width,
               trackPoint.y * canvasRef.current.height,
-              15,
+              rotationData.active ? 20 : 15,
               0,
               2 * Math.PI
             );
             canvasCtx.strokeStyle = color;
             canvasCtx.lineWidth = 3;
             canvasCtx.stroke();
+            
+            // Draw rotation indicator
+            if (rotationData.active) {
+              canvasCtx.strokeStyle = '#ff00ff';
+              canvasCtx.lineWidth = 2;
+              canvasCtx.beginPath();
+              canvasCtx.arc(
+                trackPoint.x * canvasRef.current.width,
+                trackPoint.y * canvasRef.current.height,
+                30,
+                0,
+                Math.PI * 2
+              );
+              canvasCtx.stroke();
+              
+              // Arrow indicating rotation direction
+              const arrowAngle = Math.atan2(handDeltaY, handDeltaX);
+              const arrowLength = 25;
+              canvasCtx.beginPath();
+              canvasCtx.moveTo(
+                trackPoint.x * canvasRef.current.width,
+                trackPoint.y * canvasRef.current.height
+              );
+              canvasCtx.lineTo(
+                trackPoint.x * canvasRef.current.width + Math.cos(arrowAngle) * arrowLength,
+                trackPoint.y * canvasRef.current.height + Math.sin(arrowAngle) * arrowLength
+              );
+              canvasCtx.stroke();
+            }
             
             canvasCtx.restore();
           } else {
@@ -248,7 +367,7 @@ const GestureProcessor: React.FC<GestureProcessorProps> = ({
           autoPlay
           playsInline
           muted
-          className="w-48 h-36 object-cover scale-x-[-1] opacity-60"
+          className="w-80 h-60 object-cover scale-x-[-1] opacity-60"
         />
         <canvas 
           ref={canvasRef} 
