@@ -221,10 +221,10 @@ const App: React.FC = () => {
       {/* Help Button */}
       <button
         onClick={() => setHelpVisible(v => !v)}
-        className="fixed bottom-[102px] right-8 w-16 h-16 bg-cyan-500/30 border-2 border-cyan-500 rounded-full text-cyan-400 text-2xl font-bold hover:bg-cyan-500 hover:text-black transition-all z-50 shadow-lg shadow-cyan-500/50"
+        className="fixed bottom-[102px] right-8 w-20 h-20 bg-gradient-to-br from-cyan-500/20 via-purple-500/20 to-pink-500/20 backdrop-blur-sm border-2 border-cyan-400/60 rounded-2xl text-cyan-300 text-3xl font-black hover:from-cyan-500/40 hover:via-purple-500/40 hover:to-pink-500/40 hover:border-cyan-300 hover:text-white hover:scale-110 active:scale-95 transition-all duration-300 z-50 shadow-[0_0_30px_rgba(0,255,255,0.5),0_0_60px_rgba(191,0,255,0.3)] hover:shadow-[0_0_40px_rgba(0,255,255,0.8),0_0_80px_rgba(191,0,255,0.5)]"
         title="Help & Gestures Guide"
       >
-        ?
+        <span className="drop-shadow-[0_0_8px_rgba(0,255,255,0.8)]">?</span>
       </button>
 
       {uploadError && (
