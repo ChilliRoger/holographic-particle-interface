@@ -221,7 +221,7 @@ const App: React.FC = () => {
       {/* Help Button */}
       <button
         onClick={() => setHelpVisible(v => !v)}
-        className="fixed bottom-[102px] right-8 w-16 h-16 bg-cyan-500/30 border-2 border-cyan-500 rounded-full text-cyan-400 text-2xl font-bold hover:bg-cyan-500 hover:text-black transition-all z-50 shadow-lg shadow-cyan-500/50"
+        className="fixed bottom-[102px] right-8 w-14 h-14 bg-gradient-to-br from-cyan-500/40 to-purple-500/40 border-2 border-cyan-400/60 rounded-xl text-white text-3xl font-extrabold hover:from-cyan-500 hover:to-purple-500 hover:border-cyan-300 hover:scale-110 hover:shadow-2xl hover:shadow-cyan-500/70 transition-all duration-300 z-50 shadow-lg shadow-cyan-500/40 backdrop-blur-sm flex items-center justify-center"
         title="Help & Gestures Guide"
       >
         ?
