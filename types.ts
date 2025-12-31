@@ -11,6 +11,7 @@ export enum PresetModel {
   CONE = 'Cone',
   TORUS = 'Torus',
   PYRAMID = 'Pyramid',
+  DNA = 'DNA',
   CUSTOM = 'Custom Upload',
   FREE = 'Free Flow'
 }

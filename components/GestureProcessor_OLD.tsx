@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
-import { ControlMode, InteractionPoint } from '../types';
+import { ControlMode, InteractionPoint, ShapeConstruction } from '../types';
 
 declare var Hands: any;
 declare var Camera: any;
@@ -10,13 +10,15 @@ interface GestureProcessorProps {
   showCamera: boolean;
   onInteractionUpdate: (point: InteractionPoint) => void;
   onGestureDetected: (gesture: string) => void;
+  onShapeConstructionUpdate?: (shape: ShapeConstruction | null) => void;
 }
 
 const GestureProcessor: React.FC<GestureProcessorProps> = ({ 
   mode, 
   showCamera, 
   onInteractionUpdate, 
-  onGestureDetected
+  onGestureDetected,
+  onShapeConstructionUpdate
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -26,6 +28,12 @@ const GestureProcessor: React.FC<GestureProcessorProps> = ({
   const previousHandPositionRef = useRef<{ x: number; y: number } | null>(null);
   const gestureStartTimeRef = useRef<number>(0);
   const rotationAccumulatorRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  
+  // Shape construction tracking
+  const shapePathRef = useRef<{ x: number; y: number; z: number; timestamp: number }[]>([]);
+  const lastHandPositionsRef = useRef<{ left: { x: number; y: number; z: number } | null, right: { x: number; y: number; z: number } | null }>({ left: null, right: null });
+  const stationaryStartTimeRef = useRef<number | null>(null);
+  const shapeConstructionRef = useRef<ShapeConstruction | null>(null);
 
   useEffect(() => {
     if (mode === ControlMode.CURSOR) {
@@ -45,7 +53,7 @@ const GestureProcessor: React.FC<GestureProcessorProps> = ({
         });
 
         hands.setOptions({
-          maxNumHands: 1,
+          maxNumHands: 2, // Enable two-hand tracking for shape construction
           modelComplexity: 1,
           minDetectionConfidence: 0.5,
           minTrackingConfidence: 0.5
@@ -58,6 +66,8 @@ const GestureProcessor: React.FC<GestureProcessorProps> = ({
 
           if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
             const landmarks = results.multiHandLandmarks[0];
+            const palmBase = landmarks[0];
+            const wrist = landmarks[0];
             const indexTip = landmarks[8];
             const thumbTip = landmarks[4];
             const middleTip = landmarks[12];
@@ -96,19 +106,50 @@ const GestureProcessor: React.FC<GestureProcessorProps> = ({
             );
             const isPinching = pinchDist < 0.05;
 
-            // OK sign detection
+            // OK sign detection (thumb and index form circle)
             const okDist = Math.sqrt(
               Math.pow(indexTip.x - thumbTip.x, 2) + 
               Math.pow(indexTip.y - thumbTip.y, 2)
             );
             const isOkSign = okDist < 0.08 && okDist > 0.03 && extendedFingers >= 2;
 
-            // Rock sign detection
+            // Rock sign detection (index and pinky extended, middle and ring folded)
             const isRockSign = fingerStates[0] && !fingerStates[1] && !fingerStates[2] && fingerStates[3];
 
-            // Thumbs up/down detection
+            // Thumbs up detection
             const isThumbsUp = thumbExtended && extendedFingers === 0 && landmarks[4].y < landmarks[2].y;
+            
+            // Thumbs down detection
             const isThumbsDown = thumbExtended && extendedFingers === 0 && landmarks[4].y > landmarks[2].y;
+
+            // Enhanced L-shape detection (thumb and index extended at ~90° angle)
+            // Check if thumb and index are extended
+            const thumbIndexExtended = thumbExtended && fingerStates[0];
+            // Check if other fingers are folded (middle, ring, pinky)
+            const otherFingersFolded = !fingerStates[1] && !fingerStates[2] && !fingerStates[3];
+            
+            let isLShape = false;
+            let lShapeAngle = 0;
+            
+            if (thumbIndexExtended && otherFingersFolded && extendedFingers === 1) {
+              // Calculate vectors from thumb base to thumb tip and index tip
+              const thumbBase = landmarks[2]; // Thumb MCP
+              const thumbTipPos = { x: thumbTip.x - thumbBase.x, y: thumbTip.y - thumbBase.y };
+              const indexTipPos = { x: indexTip.x - thumbBase.x, y: indexTip.y - thumbBase.y };
+              
+              // Calculate angle between vectors
+              const dot = thumbTipPos.x * indexTipPos.x + thumbTipPos.y * indexTipPos.y;
+              const mag1 = Math.sqrt(thumbTipPos.x * thumbTipPos.x + thumbTipPos.y * thumbTipPos.y);
+              const mag2 = Math.sqrt(indexTipPos.x * indexTipPos.x + indexTipPos.y * indexTipPos.y);
+              
+              if (mag1 > 0.05 && mag2 > 0.05) { // Ensure fingers are actually extended
+                const cosAngle = dot / (mag1 * mag2);
+                lShapeAngle = Math.acos(Math.max(-1, Math.min(1, cosAngle))) * (180 / Math.PI);
+                
+                // Check if angle is approximately 90° (±15° tolerance)
+                isLShape = lShapeAngle >= 75 && lShapeAngle <= 105;
+              }
+            }
 
             // Track hand movement for rotation gestures
             const currentPos = { x: trackPoint.x, y: trackPoint.y };
@@ -121,12 +162,13 @@ const GestureProcessor: React.FC<GestureProcessorProps> = ({
             }
             previousHandPositionRef.current = currentPos;
 
-            let type: 'attract' | 'repel' | 'pinch' = 'attract';
+            let type: 'attract' | 'repel' | 'pinch' | 'compress' = 'attract';
             let strength = 1.0;
             let gestureType = 'NEUTRAL';
             let rotationData = { active: false, deltaX: 0, deltaY: 0 };
+            let compressionData = { active: false, intensity: 0 };
 
-            // Gesture Classification with priority order (NO COMPRESSION)
+            // Gesture Classification with priority order
             if (isPinching) {
               type = 'pinch';
               strength = 2.5;
@@ -135,10 +177,12 @@ const GestureProcessor: React.FC<GestureProcessorProps> = ({
               type = 'attract';
               strength = 0.5;
               gestureType = 'THUMBS_UP';
+              // Zoom in effect handled by parent
             } else if (isThumbsDown) {
               type = 'repel';
               strength = 0.5;
               gestureType = 'THUMBS_DOWN';
+              // Zoom out effect handled by parent
             } else if (isOkSign) {
               type = 'attract';
               strength = 1.0;
@@ -147,6 +191,27 @@ const GestureProcessor: React.FC<GestureProcessorProps> = ({
               type = 'attract';
               strength = 1.5;
               gestureType = 'ROCK_SIGN';
+            } else if (isLShape) {
+              // Compression mode - L-shape gesture
+              type = 'compress';
+              strength = 0;
+              gestureType = 'L_SHAPE_COMPRESS';
+              
+              // Calculate compression intensity based on hand depth (z-coordinate)
+              // Hand closer to camera (higher z) = more compression
+              // Normalize z to 0-1 range (assuming z is typically -0.5 to 0.5)
+              const rawDepth = Math.max(-0.5, Math.min(0.5, trackPoint.z * 3));
+              const normalizedDepth = (rawDepth + 0.5) / 1.0; // 0 (far) to 1 (close)
+              
+              // Smooth depth changes to avoid jitter (exponential moving average)
+              const smoothingFactor = 0.15;
+              handDepthSmoothingRef.current = handDepthSmoothingRef.current * (1 - smoothingFactor) + normalizedDepth * smoothingFactor;
+              
+              // Compression intensity: 0 (loose) to 1 (fully solid)
+              compressionData = {
+                active: true,
+                intensity: Math.max(0, Math.min(1, handDepthSmoothingRef.current))
+              };
             } else if (extendedFingers === 0 && !thumbExtended) {
               type = 'repel';
               strength = 1.8;
@@ -154,13 +219,14 @@ const GestureProcessor: React.FC<GestureProcessorProps> = ({
             } else if (extendedFingers >= 4 && thumbExtended) {
               // Open palm - 360° rotation control
               type = 'attract';
-              strength = 0.3;
+              strength = 0.3; // Lower strength so it doesn't interfere with rotation
               gestureType = 'OPEN_PALM_ROTATE';
               
+              // Always active rotation when palm is open, based on hand movement
               if (Math.abs(handDeltaX) > 0.002 || Math.abs(handDeltaY) > 0.002) {
                 rotationData = {
                   active: true,
-                  deltaX: handDeltaY * 20,
+                  deltaX: handDeltaY * 20, // Increased sensitivity for smoother rotation
                   deltaY: handDeltaX * 20
                 };
               }
@@ -170,6 +236,7 @@ const GestureProcessor: React.FC<GestureProcessorProps> = ({
               strength = 0.8;
               gestureType = 'PEACE_ROTATE';
               
+              // Continuous rotation based on hand position
               rotationData = {
                 active: true,
                 deltaX: handDeltaY * 8,
@@ -183,12 +250,15 @@ const GestureProcessor: React.FC<GestureProcessorProps> = ({
               type = 'attract';
               strength = 0.5;
               gestureType = 'NEUTRAL';
+              // Reset compression when L-shape is released
+              compressionData = { active: false, intensity: 0 };
+              handDepthSmoothingRef.current = 0;
             }
 
             onGestureDetected(gestureType);
             
-            // Send interaction update (NO COMPRESSION DATA)
-            const interactionData: InteractionPoint = {
+            // Send interaction update with rotation and compression data
+            const interactionData: any = {
               x: ix,
               y: iy,
               z: -trackPoint.z * 3,
@@ -197,6 +267,16 @@ const GestureProcessor: React.FC<GestureProcessorProps> = ({
               strength
             };
             
+            // Add rotation data if applicable
+            if (rotationData.active) {
+              interactionData.rotation = rotationData;
+            }
+            
+            // Add compression data if applicable
+            if (compressionData.active) {
+              interactionData.compression = compressionData;
+            }
+            
             onInteractionUpdate(interactionData);
 
             // Enhanced visual feedback
@@ -204,7 +284,8 @@ const GestureProcessor: React.FC<GestureProcessorProps> = ({
             
             // Draw hand skeleton
             let skeletonColor = 'rgba(0, 255, 255, 0.5)';
-            if (rotationData.active) skeletonColor = 'rgba(255, 100, 255, 0.7)';
+            if (compressionData.active) skeletonColor = 'rgba(255, 136, 0, 0.7)'; // Orange for compression
+            else if (rotationData.active) skeletonColor = 'rgba(255, 100, 255, 0.7)'; // Pink for rotation
             canvasCtx.strokeStyle = skeletonColor;
             canvasCtx.lineWidth = 2;
             const connections = [
@@ -229,24 +310,47 @@ const GestureProcessor: React.FC<GestureProcessorProps> = ({
               canvasCtx.stroke();
             });
             
-            // Draw tracking point
+            // Draw tracking point with gesture-based color
             let color = '#00ffff';
-            if (type === 'repel') color = '#ff0066';
+            if (type === 'compress') color = '#ff8800'; // Orange for compression
+            else if (type === 'repel') color = '#ff0066';
             else if (type === 'pinch') color = '#00ff00';
             else if (rotationData.active) color = '#ff00ff';
             else if (gestureType.includes('THUMBS')) color = '#ffaa00';
+            
+            // Draw tracking point with size based on compression
+            const pointRadius = compressionData.active 
+              ? 15 + compressionData.intensity * 10 // Scale up with compression intensity
+              : rotationData.active ? 20 : 15;
             
             canvasCtx.beginPath();
             canvasCtx.arc(
               trackPoint.x * canvasRef.current.width,
               trackPoint.y * canvasRef.current.height,
-              rotationData.active ? 20 : 15,
+              pointRadius,
               0,
               2 * Math.PI
             );
             canvasCtx.strokeStyle = color;
-            canvasCtx.lineWidth = 3;
+            canvasCtx.lineWidth = compressionData.active ? 4 : 3;
             canvasCtx.stroke();
+            
+            // Draw compression intensity indicator (concentric circles)
+            if (compressionData.active) {
+              canvasCtx.strokeStyle = `rgba(255, 136, 0, ${0.3 + compressionData.intensity * 0.5})`;
+              canvasCtx.lineWidth = 2;
+              for (let i = 1; i <= 3; i++) {
+                canvasCtx.beginPath();
+                canvasCtx.arc(
+                  trackPoint.x * canvasRef.current.width,
+                  trackPoint.y * canvasRef.current.height,
+                  pointRadius + i * 8,
+                  0,
+                  2 * Math.PI
+                );
+                canvasCtx.stroke();
+              }
+            }
             
             // Draw rotation indicator
             if (rotationData.active) {
@@ -262,6 +366,7 @@ const GestureProcessor: React.FC<GestureProcessorProps> = ({
               );
               canvasCtx.stroke();
               
+              // Arrow indicating rotation direction
               const arrowAngle = Math.atan2(handDeltaY, handDeltaX);
               const arrowLength = 25;
               canvasCtx.beginPath();
@@ -278,7 +383,9 @@ const GestureProcessor: React.FC<GestureProcessorProps> = ({
             
             canvasCtx.restore();
           } else {
-            onInteractionUpdate({ x: 0, y: 0, z: 0, active: false, type: 'none', strength: 0 });
+            // Reset compression when hand is not detected
+            handDepthSmoothingRef.current = 0;
+            onInteractionUpdate({ x: 0, y: 0, z: 0, active: false, type: 'none', strength: 0, compression: { active: false, intensity: 0 } });
           }
         });
 
@@ -306,7 +413,7 @@ const GestureProcessor: React.FC<GestureProcessorProps> = ({
     return () => {
       if (cameraRef.current) cameraRef.current.stop();
     };
-  }, [mode, onInteractionUpdate, onGestureDetected]);
+  }, [mode]);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -368,4 +475,3 @@ const GestureProcessor: React.FC<GestureProcessorProps> = ({
 };
 
 export default GestureProcessor;
-

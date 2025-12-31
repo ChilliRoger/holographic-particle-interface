@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
-import { ControlMode, InteractionPoint } from '../types';
+import { ControlMode, InteractionPoint, ShapeConstruction } from '../types';
 
 declare var Hands: any;
 declare var Camera: any;
@@ -10,13 +10,15 @@ interface GestureProcessorProps {
   showCamera: boolean;
   onInteractionUpdate: (point: InteractionPoint) => void;
   onGestureDetected: (gesture: string) => void;
+  onShapeConstructionUpdate?: (shape: ShapeConstruction | null) => void;
 }
 
 const GestureProcessor: React.FC<GestureProcessorProps> = ({ 
   mode, 
   showCamera, 
   onInteractionUpdate, 
-  onGestureDetected
+  onGestureDetected,
+  onShapeConstructionUpdate
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -24,8 +26,13 @@ const GestureProcessor: React.FC<GestureProcessorProps> = ({
   const handsRef = useRef<any>(null);
   const cameraRef = useRef<any>(null);
   const previousHandPositionRef = useRef<{ x: number; y: number } | null>(null);
-  const gestureStartTimeRef = useRef<number>(0);
   const rotationAccumulatorRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  
+  // Shape construction tracking
+  const shapePathRef = useRef<{ x: number; y: number; z: number; timestamp: number }[]>([]);
+  const lastHandPositionsRef = useRef<{ left: { x: number; y: number; z: number } | null, right: { x: number; y: number; z: number } | null }>({ left: null, right: null });
+  const stationaryStartTimeRef = useRef<number | null>(null);
+  const shapeConstructionRef = useRef<ShapeConstruction | null>(null);
 
   useEffect(() => {
     if (mode === ControlMode.CURSOR) {
@@ -45,7 +52,7 @@ const GestureProcessor: React.FC<GestureProcessorProps> = ({
         });
 
         hands.setOptions({
-          maxNumHands: 1,
+          maxNumHands: 2, // Enable two-hand tracking for shape construction
           modelComplexity: 1,
           minDetectionConfidence: 0.5,
           minTrackingConfidence: 0.5
@@ -56,7 +63,201 @@ const GestureProcessor: React.FC<GestureProcessorProps> = ({
           const canvasCtx = canvasRef.current.getContext('2d')!;
           canvasCtx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
 
-          if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+          const handsDetected = results.multiHandLandmarks && results.multiHandLandmarks.length > 0;
+          const handLabels = results.multiHandedness || [];
+          
+          // Check for two-hand shape construction (both index fingers extended)
+          let leftHandIndex: any = null;
+          let rightHandIndex: any = null;
+          let leftHandIndexTip: any = null;
+          let rightHandIndexTip: any = null;
+          
+          if (handsDetected && results.multiHandLandmarks.length === 2) {
+            for (let i = 0; i < results.multiHandLandmarks.length; i++) {
+              const landmarks = results.multiHandLandmarks[i];
+              const label = handLabels[i]?.categoryName?.toLowerCase() || '';
+              const indexTip = landmarks[8];
+              const thumbTip = landmarks[4];
+              const middleTip = landmarks[12];
+              const ringTip = landmarks[16];
+              const pinkyTip = landmarks[20];
+              
+              // Check if only index finger is extended
+              const indexExtended = indexTip.y < landmarks[6].y && indexTip.y < landmarks[5].y;
+              const middleFolded = middleTip.y > landmarks[10].y;
+              const ringFolded = ringTip.y > landmarks[14].y;
+              const pinkyFolded = pinkyTip.y > landmarks[18].y;
+              const thumbFolded = Math.abs(thumbTip.x - landmarks[2].x) < 0.1;
+              
+              const onlyIndexExtended = indexExtended && middleFolded && ringFolded && pinkyFolded && thumbFolded;
+              
+              if (onlyIndexExtended) {
+                if (label.includes('left')) {
+                  leftHandIndex = landmarks;
+                  leftHandIndexTip = indexTip;
+                } else if (label.includes('right')) {
+                  rightHandIndex = landmarks;
+                  rightHandIndexTip = indexTip;
+                }
+              }
+            }
+          }
+
+          // Handle two-hand shape construction
+          if (leftHandIndex && rightHandIndex && leftHandIndexTip && rightHandIndexTip) {
+            const currentTime = Date.now();
+            const leftPos = {
+              x: (leftHandIndexTip.x * 2 - 1),
+              y: -(leftHandIndexTip.y * 2 - 1),
+              z: -leftHandIndexTip.z * 3
+            };
+            const rightPos = {
+              x: (rightHandIndexTip.x * 2 - 1),
+              y: -(rightHandIndexTip.y * 2 - 1),
+              z: -rightHandIndexTip.z * 3
+            };
+            
+            // Check if hands are stationary (within threshold)
+            const leftStationary = lastHandPositionsRef.current.left && 
+              Math.abs(leftPos.x - lastHandPositionsRef.current.left.x) < 0.02 &&
+              Math.abs(leftPos.y - lastHandPositionsRef.current.left.y) < 0.02 &&
+              Math.abs(leftPos.z - lastHandPositionsRef.current.left.z) < 0.05;
+            const rightStationary = lastHandPositionsRef.current.right &&
+              Math.abs(rightPos.x - lastHandPositionsRef.current.right.x) < 0.02 &&
+              Math.abs(rightPos.y - lastHandPositionsRef.current.right.y) < 0.02 &&
+              Math.abs(rightPos.z - lastHandPositionsRef.current.right.z) < 0.05;
+            
+            if (leftStationary && rightStationary) {
+              if (stationaryStartTimeRef.current === null) {
+                stationaryStartTimeRef.current = currentTime;
+              } else if (currentTime - stationaryStartTimeRef.current >= 300) {
+                // Lock shape after 300ms of being stationary
+                if (!shapeConstructionRef.current || shapeConstructionRef.current.phase === 'tracing') {
+                  const bounds = shapePathRef.current.length > 0 ? {
+                    minX: Math.min(...shapePathRef.current.map(p => p.x)),
+                    maxX: Math.max(...shapePathRef.current.map(p => p.x)),
+                    minY: Math.min(...shapePathRef.current.map(p => p.y)),
+                    maxY: Math.max(...shapePathRef.current.map(p => p.y)),
+                    minZ: Math.min(...shapePathRef.current.map(p => p.z)),
+                    maxZ: Math.max(...shapePathRef.current.map(p => p.z))
+                  } : undefined;
+                  
+                  shapeConstructionRef.current = {
+                    active: true,
+                    phase: 'locked',
+                    points: [...shapePathRef.current],
+                    bounds,
+                    density: 0.5, // Start with medium density
+                    lockTime: currentTime
+                  };
+                  
+                  if (onShapeConstructionUpdate) {
+                    onShapeConstructionUpdate(shapeConstructionRef.current);
+                  }
+                }
+              }
+            } else {
+              // Hands are moving - reset stationary timer and continue tracing
+              stationaryStartTimeRef.current = null;
+              
+              // Add points to path (use both finger positions)
+              const currentTime2 = Date.now();
+              [leftPos, rightPos].forEach(pos => {
+                // Only add if significantly different from last point
+                const lastPoint = shapePathRef.current.length > 0 ? shapePathRef.current[shapePathRef.current.length - 1] : null;
+                if (!lastPoint || 
+                    Math.abs(pos.x - lastPoint.x) > 0.01 ||
+                    Math.abs(pos.y - lastPoint.y) > 0.01 ||
+                    Math.abs(pos.z - lastPoint.z) > 0.02) {
+                  shapePathRef.current.push({ ...pos, timestamp: currentTime2 });
+                }
+              });
+              
+              // Update shape construction in tracing phase
+              const bounds = shapePathRef.current.length > 0 ? {
+                minX: Math.min(...shapePathRef.current.map(p => p.x)),
+                maxX: Math.max(...shapePathRef.current.map(p => p.x)),
+                minY: Math.min(...shapePathRef.current.map(p => p.y)),
+                maxY: Math.max(...shapePathRef.current.map(p => p.y)),
+                minZ: Math.min(...shapePathRef.current.map(p => p.z)),
+                maxZ: Math.max(...shapePathRef.current.map(p => p.z))
+              } : undefined;
+              
+              // Calculate density based on average hand depth
+              const avgDepth = (leftPos.z + rightPos.z) / 2;
+              const normalizedDepth = Math.max(0, Math.min(1, (avgDepth + 1) / 2)); // Normalize to 0-1
+              
+              shapeConstructionRef.current = {
+                active: true,
+                phase: 'tracing',
+                points: [...shapePathRef.current],
+                bounds,
+                density: 1 - normalizedDepth // Farther = lower density, closer = higher
+              };
+              
+              if (onShapeConstructionUpdate) {
+                onShapeConstructionUpdate(shapeConstructionRef.current);
+              }
+            }
+            
+            lastHandPositionsRef.current = { left: leftPos, right: rightPos };
+            
+            // Draw shape construction feedback
+            if (shapeConstructionRef.current) {
+              canvasCtx.strokeStyle = shapeConstructionRef.current.phase === 'locked' 
+                ? 'rgba(0, 255, 255, 0.8)' 
+                : 'rgba(0, 255, 255, 0.5)';
+              canvasCtx.lineWidth = shapeConstructionRef.current.phase === 'locked' ? 3 : 2;
+              
+              // Draw path
+              if (shapePathRef.current.length > 1) {
+                canvasCtx.beginPath();
+                shapePathRef.current.forEach((point, idx) => {
+                  const screenX = ((point.x + 1) / 2) * canvasRef.current!.width;
+                  const screenY = ((1 - point.y) / 2) * canvasRef.current!.height;
+                  if (idx === 0) {
+                    canvasCtx.moveTo(screenX, screenY);
+                  } else {
+                    canvasCtx.lineTo(screenX, screenY);
+                  }
+                });
+                canvasCtx.stroke();
+              }
+              
+              // Draw index finger positions
+              [leftHandIndexTip, rightHandIndexTip].forEach((tip) => {
+                if (tip) {
+                  canvasCtx.beginPath();
+                  canvasCtx.arc(
+                    tip.x * canvasRef.current!.width,
+                    tip.y * canvasRef.current!.height,
+                    8,
+                    0,
+                    2 * Math.PI
+                  );
+                  canvasCtx.fillStyle = 'rgba(0, 255, 255, 0.6)';
+                  canvasCtx.fill();
+                }
+              });
+            }
+            
+            // Don't process other gestures during shape construction
+            return;
+          } else {
+            // Reset shape construction if hands are not in construction mode
+            if (shapeConstructionRef.current) {
+              shapeConstructionRef.current = null;
+              shapePathRef.current = [];
+              stationaryStartTimeRef.current = null;
+              lastHandPositionsRef.current = { left: null, right: null };
+              if (onShapeConstructionUpdate) {
+                onShapeConstructionUpdate(null);
+              }
+            }
+          }
+
+          // Process single hand gestures (existing logic, but remove compression)
+          if (handsDetected && results.multiHandLandmarks.length > 0) {
             const landmarks = results.multiHandLandmarks[0];
             const indexTip = landmarks[8];
             const thumbTip = landmarks[4];
@@ -306,7 +507,7 @@ const GestureProcessor: React.FC<GestureProcessorProps> = ({
     return () => {
       if (cameraRef.current) cameraRef.current.stop();
     };
-  }, [mode, onInteractionUpdate, onGestureDetected]);
+  }, [mode, onInteractionUpdate, onGestureDetected, onShapeConstructionUpdate]);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {

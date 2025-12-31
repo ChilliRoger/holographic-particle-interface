@@ -107,6 +107,47 @@ export const generateModelCoordinates = (model: PresetModel, count: number): Par
       }
       break;
 
+    case PresetModel.DNA:
+      // DNA double helix structure
+      const dnaHeight = 1.8;
+      const dnaRadius = 0.4;
+      const helixTurns = 3; // Number of complete turns
+      
+      for (let i = 0; i < count; i++) {
+        const t = (i / count) * helixTurns * Math.PI * 2;
+        const height = (i / count - 0.5) * dnaHeight;
+        
+        // Two strands of the helix
+        if (i % 2 === 0) {
+          // First strand
+          points.push({
+            x: dnaRadius * Math.cos(t),
+            y: height,
+            z: dnaRadius * Math.sin(t)
+          });
+        } else {
+          // Second strand (opposite side)
+          points.push({
+            x: dnaRadius * Math.cos(t + Math.PI),
+            y: height,
+            z: dnaRadius * Math.sin(t + Math.PI)
+          });
+        }
+        
+        // Add connecting base pairs occasionally
+        if (i % 10 === 0 && i > 0) {
+          const t2 = ((i - 1) / count) * helixTurns * Math.PI * 2;
+          const height2 = ((i - 1) / count - 0.5) * dnaHeight;
+          // Add a point in between for visual connection
+          points.push({
+            x: dnaRadius * 0.5 * Math.cos(t2 + Math.PI / 2),
+            y: height2,
+            z: dnaRadius * 0.5 * Math.sin(t2 + Math.PI / 2)
+          });
+        }
+      }
+      break;
+
     case PresetModel.FREE:
       // For free flow mode, generate widely scattered random positions
       for (let i = 0; i < count; i++) {

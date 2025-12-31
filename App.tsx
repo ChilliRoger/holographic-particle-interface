@@ -119,6 +119,7 @@ const App: React.FC = () => {
   // Mouse drag for 360-degree rotation
   useEffect(() => {
     const handleMouseDown = (e: MouseEvent) => {
+      
       if (e.button === 2) { // Right click
         e.preventDefault();
         setIsDragging(true);
@@ -414,6 +415,7 @@ const App: React.FC = () => {
           Biometric Syncing...
         </div>
       )}
+      
     </div>
   );
 };
