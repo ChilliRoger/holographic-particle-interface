@@ -35,8 +35,13 @@ const ParticleSystem: React.FC<ParticleSystemProps> = ({ preset, customModel, in
       }
       return scaledModel;
     }
-    return generateModelCoordinates(preset, settings.particleCount);
-  }, [preset, customModel, settings.particleCount]);
+    return generateModelCoordinates(
+      preset, 
+      settings.particleCount, 
+      settings.dissectionEnabled,
+      settings.dissectionPlane
+    );
+  }, [preset, customModel, settings.particleCount, settings.dissectionEnabled, settings.dissectionPlane]);
   
   // Initialize positions randomly
   const initialPositions = useMemo(() => {

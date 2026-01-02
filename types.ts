@@ -11,6 +11,8 @@ export enum PresetModel {
   CONE = 'Cone',
   TORUS = 'Torus',
   PYRAMID = 'Pyramid',
+  BELL = 'Bell',
+  LETTER_A = 'Letter A',
   CUSTOM = 'Custom Upload',
   FREE = 'Free Flow'
 }
@@ -37,4 +39,6 @@ export interface AppSettings {
   showCamera: boolean;
   isFormationMode: boolean;
   rotationSpeed: number;
+  dissectionEnabled: boolean;
+  dissectionPlane: 'x' | 'y' | 'z'; // Which axis to cut along
 }

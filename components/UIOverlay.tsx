@@ -108,6 +108,41 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
           />
           <label htmlFor="formation" className="text-[10px] uppercase cursor-pointer">Formation Lock</label>
         </div>
+        <div className="flex items-center gap-2">
+          <input 
+            type="checkbox" 
+            id="dissection"
+            checked={settings.dissectionEnabled}
+            onChange={(e) => onUpdateSettings({ dissectionEnabled: e.target.checked })}
+            className="accent-cyan-500"
+          />
+          <label htmlFor="dissection" className="text-[10px] uppercase cursor-pointer">Dissection</label>
+        </div>
+        {settings.dissectionEnabled && (
+          <div>
+            <label className="text-[10px] uppercase block mb-1">Dissection Plane</label>
+            <div className="flex gap-2">
+              <button
+                onClick={() => onUpdateSettings({ dissectionPlane: 'x' })}
+                className={`px-2 py-1 text-[9px] border transition-all ${settings.dissectionPlane === 'x' ? 'bg-cyan-500 text-black border-cyan-500' : 'bg-black/40 text-cyan-400 border-cyan-500/50 hover:border-cyan-500'}`}
+              >
+                X
+              </button>
+              <button
+                onClick={() => onUpdateSettings({ dissectionPlane: 'y' })}
+                className={`px-2 py-1 text-[9px] border transition-all ${settings.dissectionPlane === 'y' ? 'bg-cyan-500 text-black border-cyan-500' : 'bg-black/40 text-cyan-400 border-cyan-500/50 hover:border-cyan-500'}`}
+              >
+                Y
+              </button>
+              <button
+                onClick={() => onUpdateSettings({ dissectionPlane: 'z' })}
+                className={`px-2 py-1 text-[9px] border transition-all ${settings.dissectionPlane === 'z' ? 'bg-cyan-500 text-black border-cyan-500' : 'bg-black/40 text-cyan-400 border-cyan-500/50 hover:border-cyan-500'}`}
+              >
+                Z
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Bottom Right: Presets */}

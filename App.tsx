@@ -29,6 +29,8 @@ const App: React.FC = () => {
     showCamera: true,
     isFormationMode: true,
     rotationSpeed: 0.5,
+    dissectionEnabled: false,
+    dissectionPlane: 'x',
   });
 
   const [manualRotation, setManualRotation] = useState({ x: 0, y: 0 });
