@@ -1,13 +1,13 @@
 
 export const PARTICLE_COUNT = 4000;
 export const MAX_PARTICLES = 8000;
-export const DEFAULT_COLOR = '#00ffff'; // Cyan glow
+export const DEFAULT_COLOR = '#00ff41'; // Dark green glow
 export const TRANSITION_SPEED = 0.05;
 export const BROWNIAN_STRENGTH = 0.002;
 
 export const COLOR_SCHEMES = [
-  { name: 'Cyan Glow', value: '#00ffff' },
-  { name: 'Matrix Green', value: '#00ff41' },
+  { name: 'Dark Green', value: '#00ff41' },
+  { name: 'Forest Green', value: '#00cc33' },
   { name: 'Electric Purple', value: '#bf00ff' },
   { name: 'Plasma Pink', value: '#ff007f' },
   { name: 'Sunfire', value: '#ffae00' },

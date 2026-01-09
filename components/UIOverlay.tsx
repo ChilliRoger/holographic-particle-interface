@@ -31,9 +31,9 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-40 text-cyan-400 font-mono select-none">
+    <div className="fixed inset-0 pointer-events-none z-40 text-green-400 font-mono select-none">
       {/* Top Left: Status */}
-      <div className="absolute top-8 left-8 p-4 border-l-2 border-t-2 border-cyan-500 bg-black/40 backdrop-blur-sm pointer-events-auto">
+      <div className="absolute top-8 left-8 p-4 border-l-2 border-t-2 border-green-500 bg-black/40 backdrop-blur-sm pointer-events-auto">
         <h1 className="text-2xl font-black tracking-tighter mb-1 text-white">HPI-SYSTEM-v3.2</h1>
         <div className="flex items-center gap-4 text-xs">
           <div>MODE: <span className="text-white">{mode}</span></div>
@@ -44,7 +44,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
         <div className="flex flex-col gap-2 mt-4">
           <button 
             onClick={onToggleMode}
-            className="px-3 py-1 bg-cyan-500/20 border border-cyan-500 text-[10px] hover:bg-cyan-500 hover:text-black transition-all font-bold uppercase"
+            className="px-3 py-1 bg-green-500/20 border border-green-500 text-[10px] hover:bg-green-500 hover:text-black transition-all font-bold uppercase"
           >
             Switch to {mode === ControlMode.CURSOR ? 'Gesture' : 'Cursor'} Control
           </button>
@@ -75,14 +75,14 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
       </div>
 
       {/* Top Right: Settings */}
-      <div className="absolute top-8 right-8 p-4 border-r-2 border-t-2 border-cyan-500 bg-black/40 backdrop-blur-sm pointer-events-auto flex flex-col gap-4">
+      <div className="absolute top-8 right-8 p-4 border-r-2 border-t-2 border-green-500 bg-black/40 backdrop-blur-sm pointer-events-auto flex flex-col gap-4">
         <div>
           <label className="text-[10px] uppercase block mb-1">Rotation Speed</label>
           <input 
             type="range" min="0" max="10" step="0.1" 
             value={settings.rotationSpeed}
             onChange={(e) => onUpdateSettings({ rotationSpeed: parseFloat(e.target.value) })}
-            className="w-32 accent-cyan-500"
+            className="w-32 accent-green-500"
           />
         </div>
         <div>
@@ -104,7 +104,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
             id="formation"
             checked={settings.isFormationMode}
             onChange={(e) => onUpdateSettings({ isFormationMode: e.target.checked })}
-            className="accent-cyan-500"
+            className="accent-green-500"
           />
           <label htmlFor="formation" className="text-[10px] uppercase cursor-pointer">Formation Lock</label>
         </div>
@@ -116,7 +116,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
           <button
             key={p}
             onClick={() => onSetPreset(p)}
-            className={`px-3 py-1 text-[10px] border transition-all ${currentPreset === p ? 'bg-cyan-500 text-black border-cyan-500' : 'bg-black/40 text-cyan-400 border-cyan-500/50 hover:border-cyan-500'}`}
+            className={`px-3 py-1 text-[10px] border transition-all ${currentPreset === p ? 'bg-green-500 text-black border-green-500' : 'bg-black/40 text-green-400 border-green-500/50 hover:border-green-500'}`}
           >
             {p}
           </button>

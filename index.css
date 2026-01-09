@@ -31,7 +31,7 @@ canvas {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 255, 255, 0.3);
+  background: rgba(0, 255, 65, 0.3);
   border-radius: 10px;
 }
 
@@ -55,9 +55,9 @@ canvas {
 
 /* Holographic glow effects */
 .hologram-glow {
-  text-shadow: 0 0 10px rgba(0, 255, 255, 0.8),
-               0 0 20px rgba(0, 255, 255, 0.6),
-               0 0 30px rgba(0, 255, 255, 0.4);
+  text-shadow: 0 0 10px rgba(0, 255, 65, 0.8),
+               0 0 20px rgba(0, 255, 65, 0.6),
+               0 0 30px rgba(0, 255, 65, 0.4);
 }
 
 /* Button hover effects */

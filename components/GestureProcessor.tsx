@@ -223,7 +223,7 @@ const GestureProcessor: React.FC<GestureProcessorProps> = ({
             canvasCtx.save();
             
             // Draw hand skeleton
-            const skeletonColor = rotationData.active ? 'rgba(255, 100, 255, 0.7)' : 'rgba(0, 255, 255, 0.5)';
+            const skeletonColor = rotationData.active ? 'rgba(255, 100, 255, 0.7)' : 'rgba(0, 255, 65, 0.5)';
             canvasCtx.strokeStyle = skeletonColor;
             canvasCtx.lineWidth = 2;
             const connections = [
@@ -249,7 +249,7 @@ const GestureProcessor: React.FC<GestureProcessorProps> = ({
             });
             
             // Draw tracking point with gesture-based color
-            let color = '#00ffff';
+            let color = '#00ff41';
             if (type === 'repel') color = '#ff0066';
             else if (type === 'pinch') color = '#00ff00';
             else if (rotationData.active) color = '#ff00ff';
@@ -360,7 +360,7 @@ const GestureProcessor: React.FC<GestureProcessorProps> = ({
 
   return (
     <div className={`fixed bottom-4 left-4 z-50 transition-all duration-500 ${showCamera && mode === ControlMode.GESTURE ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}`}>
-      <div className="relative border-2 border-cyan-500 rounded-lg overflow-hidden shadow-[0_0_25px_rgba(0,255,255,0.4)] bg-black">
+      <div className="relative border-2 border-green-500 rounded-lg overflow-hidden shadow-[0_0_25px_rgba(0,255,65,0.4)] bg-black">
         <video
           ref={videoRef}
           autoPlay
@@ -380,7 +380,7 @@ const GestureProcessor: React.FC<GestureProcessorProps> = ({
           </div>
         )}
       </div>
-      <div className="text-[10px] uppercase tracking-[0.2em] text-cyan-400 mt-2 text-center font-bold bg-black/50 py-1 backdrop-blur-md">
+      <div className="text-[10px] uppercase tracking-[0.2em] text-green-400 mt-2 text-center font-bold bg-black/50 py-1 backdrop-blur-md">
         Biometric Feed
       </div>
     </div>

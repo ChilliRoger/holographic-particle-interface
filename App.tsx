@@ -221,10 +221,19 @@ const App: React.FC = () => {
       {/* Help Button */}
       <button
         onClick={() => setHelpVisible(v => !v)}
-        className="fixed bottom-[102px] right-8 w-16 h-16 bg-cyan-500/30 border-2 border-cyan-500 rounded-full text-cyan-400 text-2xl font-bold hover:bg-cyan-500 hover:text-black transition-all z-50 shadow-lg shadow-cyan-500/50"
-        title="Help & Gestures Guide"
+        className={`fixed bottom-[102px] right-8 w-20 h-20 rounded-full text-green-400 text-3xl font-black transition-all z-50 flex items-center justify-center group ${
+          helpVisible 
+            ? 'bg-green-500 text-black border-4 border-green-300 shadow-[0_0_40px_rgba(0,255,65,0.8)] scale-110' 
+            : 'bg-gradient-to-br from-green-500/40 to-emerald-500/40 border-2 border-green-400 hover:bg-gradient-to-br hover:from-green-500 hover:to-emerald-500 hover:text-black hover:scale-110 shadow-[0_0_25px_rgba(0,255,65,0.5)] hover:shadow-[0_0_40px_rgba(0,255,65,0.8)]'
+        }`}
+        title="Help & Gestures Guide (Press ?)"
       >
-        ?
+        <span className="relative">
+          ?
+          {!helpVisible && (
+            <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse border-2 border-white"></span>
+          )}
+        </span>
       </button>
 
       {uploadError && (
@@ -236,79 +245,79 @@ const App: React.FC = () => {
       {/* Help Panel */}
       {helpVisible && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-8" onClick={() => setHelpVisible(false)}>
-          <div className="bg-black border-2 border-cyan-500 rounded-lg max-w-4xl w-full max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center p-8 pb-4 border-b border-cyan-500/30">
-              <h2 className="text-3xl font-bold text-cyan-400">HPI Control Guide</h2>
-              <button onClick={() => setHelpVisible(false)} className="text-cyan-400 hover:text-white text-3xl leading-none">&times;</button>
+          <div className="bg-black border-2 border-green-500 rounded-lg max-w-4xl w-full max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center p-8 pb-4 border-b border-green-500/30">
+              <h2 className="text-3xl font-bold text-green-400">HPI Control Guide</h2>
+              <button onClick={() => setHelpVisible(false)} className="text-green-400 hover:text-white text-3xl leading-none">&times;</button>
             </div>
 
-            <div className="overflow-y-auto p-8 pt-6" style={{scrollbarWidth: 'thin', scrollbarColor: '#06b6d4 transparent'}}>
+            <div className="overflow-y-auto p-8 pt-6" style={{scrollbarWidth: 'thin', scrollbarColor: '#00ff41 transparent'}}>
             <div className="grid md:grid-cols-2 gap-6 text-sm">
               {/* Gesture Controls */}
               <div>
-                <h3 className="text-xl font-bold text-cyan-400 mb-4 border-b border-cyan-500 pb-2">Hand Gestures</h3>
+                <h3 className="text-xl font-bold text-green-400 mb-4 border-b border-green-500 pb-2">Hand Gestures</h3>
                 <div className="space-y-3">
-                  <div className="flex items-start gap-3 p-3 bg-cyan-500/10 rounded">
+                  <div className="flex items-start gap-3 p-3 bg-green-500/10 rounded">
                     <span className="text-3xl">✋</span>
                     <div>
                       <div className="font-bold text-white">Open Palm</div>
-                      <div className="text-cyan-300 text-xs">360° rotation - move hand to rotate hologram</div>
+                      <div className="text-green-300 text-xs">360° rotation - move hand to rotate hologram</div>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3 p-3 bg-cyan-500/10 rounded">
+                  <div className="flex items-start gap-3 p-3 bg-green-500/10 rounded">
                     <span className="text-3xl">✊</span>
                     <div>
                       <div className="font-bold text-white">Closed Fist</div>
-                      <div className="text-cyan-300 text-xs">Repel particles away (1.8x strength)</div>
+                      <div className="text-green-300 text-xs">Repel particles away (1.8x strength)</div>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3 p-3 bg-cyan-500/10 rounded">
+                  <div className="flex items-start gap-3 p-3 bg-green-500/10 rounded">
                     <span className="text-3xl">🤏</span>
                     <div>
                       <div className="font-bold text-white">Pinch</div>
-                      <div className="text-cyan-300 text-xs">Precise grab & drag (2.5x strength)</div>
+                      <div className="text-green-300 text-xs">Precise grab & drag (2.5x strength)</div>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3 p-3 bg-cyan-500/10 rounded">
+                  <div className="flex items-start gap-3 p-3 bg-green-500/10 rounded">
                     <span className="text-3xl">☝️</span>
                     <div>
                       <div className="font-bold text-white">Point</div>
-                      <div className="text-cyan-300 text-xs">Attract particles toward finger (2.5x strength)</div>
+                      <div className="text-green-300 text-xs">Attract particles toward finger (2.5x strength)</div>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3 p-3 bg-cyan-500/10 rounded">
+                  <div className="flex items-start gap-3 p-3 bg-green-500/10 rounded">
                     <span className="text-3xl">✌️</span>
                     <div>
                       <div className="font-bold text-white">Peace Sign</div>
-                      <div className="text-cyan-300 text-xs">Alternative 360° rotation mode</div>
+                      <div className="text-green-300 text-xs">Alternative 360° rotation mode</div>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3 p-3 bg-cyan-500/10 rounded">
+                  <div className="flex items-start gap-3 p-3 bg-green-500/10 rounded">
                     <span className="text-3xl">👍</span>
                     <div>
                       <div className="font-bold text-white">Thumbs Up</div>
-                      <div className="text-cyan-300 text-xs">Zoom in / scale up</div>
+                      <div className="text-green-300 text-xs">Zoom in / scale up</div>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3 p-3 bg-cyan-500/10 rounded">
+                  <div className="flex items-start gap-3 p-3 bg-green-500/10 rounded">
                     <span className="text-3xl">👎</span>
                     <div>
                       <div className="font-bold text-white">Thumbs Down</div>
-                      <div className="text-cyan-300 text-xs">Zoom out / scale down</div>
+                      <div className="text-green-300 text-xs">Zoom out / scale down</div>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3 p-3 bg-cyan-500/10 rounded">
+                  <div className="flex items-start gap-3 p-3 bg-green-500/10 rounded">
                     <span className="text-3xl">👌</span>
                     <div>
                       <div className="font-bold text-white">OK Sign</div>
-                      <div className="text-cyan-300 text-xs">Standard attraction</div>
+                      <div className="text-green-300 text-xs">Standard attraction</div>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3 p-3 bg-cyan-500/10 rounded">
+                  <div className="flex items-start gap-3 p-3 bg-green-500/10 rounded">
                     <span className="text-3xl">🤘</span>
                     <div>
                       <div className="font-bold text-white">Rock Sign</div>
-                      <div className="text-cyan-300 text-xs">Strong attraction (1.5x)</div>
+                      <div className="text-green-300 text-xs">Strong attraction (1.5x)</div>
                     </div>
                   </div>
                 </div>
@@ -316,16 +325,16 @@ const App: React.FC = () => {
 
               {/* Keyboard Controls */}
               <div>
-                <h3 className="text-xl font-bold text-cyan-400 mb-4 border-b border-cyan-500 pb-2">Image Upload</h3>
+                <h3 className="text-xl font-bold text-green-400 mb-4 border-b border-green-500 pb-2">Image Upload</h3>
                 <div className="space-y-3 mb-6">
                   <div className="flex items-start gap-3 p-3 bg-purple-500/10 rounded border border-purple-500/30">
                     <span className="text-3xl">📤</span>
                     <div>
                       <div className="font-bold text-white">Custom 3D Upload</div>
-                      <div className="text-cyan-300 text-xs">Upload JPEG/PNG images to generate custom 3D particle formations</div>
+                      <div className="text-green-300 text-xs">Upload JPEG/PNG images to generate custom 3D particle formations</div>
                     </div>
                   </div>
-                  <div className="text-cyan-300/70 text-xs pl-3">
+                  <div className="text-green-300/70 text-xs pl-3">
                     • Click "UPLOAD IMAGE" button in control panel<br/>
                     • Select JPEG or PNG file from your device<br/>
                     • AI converts image to 3D holographic model<br/>
@@ -334,62 +343,62 @@ const App: React.FC = () => {
                   </div>
                 </div>
 
-                <h3 className="text-xl font-bold text-cyan-400 mb-4 border-b border-cyan-500 pb-2">Keyboard Controls</h3>
-                <div className="space-y-2 text-cyan-300">
-                  <div className="flex justify-between p-2 bg-cyan-500/5 rounded">
-                    <span className="font-mono bg-cyan-500/20 px-2 rounded">1-9</span>
+                <h3 className="text-xl font-bold text-green-400 mb-4 border-b border-green-500 pb-2">Keyboard Controls</h3>
+                <div className="space-y-2 text-green-300">
+                  <div className="flex justify-between p-2 bg-green-500/5 rounded">
+                    <span className="font-mono bg-green-500/20 px-2 rounded">1-9</span>
                     <span className="text-xs">Select hologram model</span>
                   </div>
-                  <div className="flex justify-between p-2 bg-cyan-500/5 rounded">
-                    <span className="font-mono bg-cyan-500/20 px-2 rounded">Arrow Keys</span>
+                  <div className="flex justify-between p-2 bg-green-500/5 rounded">
+                    <span className="font-mono bg-green-500/20 px-2 rounded">Arrow Keys</span>
                     <span className="text-xs">Rotate hologram 360°</span>
                   </div>
-                  <div className="flex justify-between p-2 bg-cyan-500/5 rounded">
-                    <span className="font-mono bg-cyan-500/20 px-2 rounded">Space</span>
+                  <div className="flex justify-between p-2 bg-green-500/5 rounded">
+                    <span className="font-mono bg-green-500/20 px-2 rounded">Space</span>
                     <span className="text-xs">Toggle formation mode</span>
                   </div>
-                  <div className="flex justify-between p-2 bg-cyan-500/5 rounded">
-                    <span className="font-mono bg-cyan-500/20 px-2 rounded">H</span>
+                  <div className="flex justify-between p-2 bg-green-500/5 rounded">
+                    <span className="font-mono bg-green-500/20 px-2 rounded">H</span>
                     <span className="text-xs">Hide/show UI</span>
                   </div>
-                  <div className="flex justify-between p-2 bg-cyan-500/5 rounded">
-                    <span className="font-mono bg-cyan-500/20 px-2 rounded">M</span>
+                  <div className="flex justify-between p-2 bg-green-500/5 rounded">
+                    <span className="font-mono bg-green-500/20 px-2 rounded">M</span>
                     <span className="text-xs">Toggle control mode</span>
                   </div>
-                  <div className="flex justify-between p-2 bg-cyan-500/5 rounded">
-                    <span className="font-mono bg-cyan-500/20 px-2 rounded">R</span>
+                  <div className="flex justify-between p-2 bg-green-500/5 rounded">
+                    <span className="font-mono bg-green-500/20 px-2 rounded">R</span>
                     <span className="text-xs">Reset particles</span>
                   </div>
-                  <div className="flex justify-between p-2 bg-cyan-500/5 rounded">
-                    <span className="font-mono bg-cyan-500/20 px-2 rounded">?</span>
+                  <div className="flex justify-between p-2 bg-green-500/5 rounded">
+                    <span className="font-mono bg-green-500/20 px-2 rounded">?</span>
                     <span className="text-xs">Toggle this help panel</span>
                   </div>
                 </div>
 
-                <h3 className="text-xl font-bold text-cyan-400 mb-4 mt-6 border-b border-cyan-500 pb-2">Mouse Controls</h3>
-                <div className="space-y-2 text-cyan-300">
-                  <div className="flex justify-between p-2 bg-cyan-500/5 rounded">
-                    <span className="font-mono bg-cyan-500/20 px-2 rounded text-xs">Move</span>
+                <h3 className="text-xl font-bold text-green-400 mb-4 mt-6 border-b border-green-500 pb-2">Mouse Controls</h3>
+                <div className="space-y-2 text-green-300">
+                  <div className="flex justify-between p-2 bg-green-500/5 rounded">
+                    <span className="font-mono bg-green-500/20 px-2 rounded text-xs">Move</span>
                     <span className="text-xs">Attract particles</span>
                   </div>
-                  <div className="flex justify-between p-2 bg-cyan-500/5 rounded">
-                    <span className="font-mono bg-cyan-500/20 px-2 rounded text-xs">Click</span>
+                  <div className="flex justify-between p-2 bg-green-500/5 rounded">
+                    <span className="font-mono bg-green-500/20 px-2 rounded text-xs">Click</span>
                     <span className="text-xs">Stronger attraction</span>
                   </div>
-                  <div className="flex justify-between p-2 bg-cyan-500/5 rounded">
-                    <span className="font-mono bg-cyan-500/20 px-2 rounded text-xs">Right Drag</span>
+                  <div className="flex justify-between p-2 bg-green-500/5 rounded">
+                    <span className="font-mono bg-green-500/20 px-2 rounded text-xs">Right Drag</span>
                     <span className="text-xs">360° rotation</span>
                   </div>
-                  <div className="flex justify-between p-2 bg-cyan-500/5 rounded">
-                    <span className="font-mono bg-cyan-500/20 px-2 rounded text-xs">Scroll</span>
+                  <div className="flex justify-between p-2 bg-green-500/5 rounded">
+                    <span className="font-mono bg-green-500/20 px-2 rounded text-xs">Scroll</span>
                     <span className="text-xs">Zoom in/out</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="mt-6 p-4 bg-cyan-500/10 border border-cyan-500 rounded text-cyan-300 text-xs">
-              <strong className="text-cyan-400">Pro Tips:</strong> For gesture mode, ensure good lighting and camera permissions. Hand should be visible with palm facing camera for best tracking. Upload images with clear edges and high contrast for best 3D conversion results.
+            <div className="mt-6 p-4 bg-green-500/10 border border-green-500 rounded text-green-300 text-xs">
+              <strong className="text-green-400">Pro Tips:</strong> For gesture mode, ensure good lighting and camera permissions. Hand should be visible with palm facing camera for best tracking. Upload images with clear edges and high contrast for best 3D conversion results.
             </div>
             </div>
           </div>
@@ -399,7 +408,7 @@ const App: React.FC = () => {
       {/* Gesture Notification Toast */}
       {lastGesture && mode === ControlMode.GESTURE && (
         <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-50">
-          <div className="text-cyan-400 text-6xl font-black italic tracking-widest uppercase opacity-20 animate-ping">
+          <div className="text-green-400 text-6xl font-black italic tracking-widest uppercase opacity-20 animate-ping">
             {lastGesture}
           </div>
         </div>
@@ -410,7 +419,7 @@ const App: React.FC = () => {
       
       {/* Loading/Status Hint */}
       {!interactionPoint.active && mode === ControlMode.GESTURE && (
-        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-cyan-500/30 text-[10px] uppercase tracking-[1em] animate-pulse">
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-green-500/30 text-[10px] uppercase tracking-[1em] animate-pulse">
           Biometric Syncing...
         </div>
       )}
